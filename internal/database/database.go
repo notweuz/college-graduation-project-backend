@@ -24,6 +24,7 @@ func SetupDatabase() error {
 
 	err = db.AutoMigrate(
 		&model.User{},
+		&model.Hall{},
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to migrate database")

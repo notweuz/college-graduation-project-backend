@@ -1,0 +1,41 @@
+Table users {
+  id          bigserial     [pk]
+  password_hash varchar(255) [not null]
+  phone       varchar(30)
+  full_name   varchar(150)
+  role        varchar(20)   [default: 'client', note: 'client / admin']
+  created_at  timestamptz   [default: `now()`]
+}
+
+Table halls {
+  id                  bigserial     [pk]
+  name                varchar(80)   [not null]
+  description         text
+  price_per_hour      decimal(10,2) [not null]
+  is_active           boolean       [default: true]
+}
+
+Table bookings {
+  id             bigserial     [pk]
+  hall_id        bigint        [ref: > halls.id]
+  user_id        bigint        [ref: > users.id]
+  start_datetime timestamptz   [not null]
+  end_datetime   timestamptz   [not null]
+  status         varchar(20)   [default: 'pending', note: 'pending / confirmed / cancelled / completed']
+  total_price    decimal(10,2) [not null]
+  comment        text
+  created_at     timestamptz   [default: `now()`]
+
+  Indexes {
+    (hall_id, start_datetime, end_datetime) [name: 'idx_bookings_overlap']
+  }
+}
+
+Table reviews {
+  id          bigserial     [pk]
+  booking_id  bigint        [ref: > bookings.id, unique]
+  user_id     bigint        [ref: > users.id]
+  rating      smallint      [note: '1–5']
+  comment     text
+  created_at  timestamptz   [default: `now()`]
+}
