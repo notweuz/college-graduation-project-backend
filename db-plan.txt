@@ -21,7 +21,6 @@ Table bookings {
   user_id        bigint        [ref: > users.id]
   start_datetime timestamptz   [not null]
   end_datetime   timestamptz   [not null]
-  status         varchar(20)   [default: 'pending', note: 'pending / confirmed / cancelled / completed']
   total_price    decimal(10,2) [not null]
   comment        text
   created_at     timestamptz   [default: `now()`]
