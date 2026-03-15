@@ -10,6 +10,7 @@ import (
 type Config struct {
 	DatabaseDSN string `envconfig:"DATABASE_DSN" default:""`
 	LogLevel    string `envconfig:"LOG_LEVEL" default:"info"`
+	JwtSecret   string `envconfig:"JWT_SECRET" default:""`
 }
 
 var Cfg Config
