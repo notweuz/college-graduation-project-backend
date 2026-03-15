@@ -11,6 +11,7 @@ type Config struct {
 	DatabaseDSN string `envconfig:"DATABASE_DSN" default:""`
 	LogLevel    string `envconfig:"LOG_LEVEL" default:"info"`
 	JwtSecret   string `envconfig:"JWT_SECRET" default:""`
+	AppPort     int    `envconfig:"APP_PORT" default:"8080"`
 }
 
 var Cfg Config

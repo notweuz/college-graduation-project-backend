@@ -18,7 +18,7 @@ func (d *reviewDatabase) Create(review *model.Review) error {
 	return d.db.Create(review).Error
 }
 
-func (d *reviewDatabase) FindByID(id uint) (*model.Review, error) {
+func (d *reviewDatabase) FindByID(id uint64) (*model.Review, error) {
 	var review model.Review
 	if err := d.db.First(&review, id).Error; err != nil {
 		return nil, err
@@ -38,6 +38,6 @@ func (d *reviewDatabase) Update(review *model.Review) error {
 	return d.db.Save(review).Error
 }
 
-func (d *reviewDatabase) Delete(id uint) error {
+func (d *reviewDatabase) Delete(id uint64) error {
 	return d.db.Delete(&model.Review{}, id).Error
 }

@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"college-graduation-project-backend/internal/config"
 	"college-graduation-project-backend/internal/errs"
-	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -13,16 +13,16 @@ func Protected() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+			return errs.Unauthorized("Not authorized", "Missing Bearer token")
 		}
 
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(config.Cfg.JwtSecret), nil
 		})
 
 		if err != nil || !token.Valid {
-			return c.Status(401).JSON(fiber.Map{"error": "invalid token"})
+			return err
 		}
 
 		claims := token.Claims.(jwt.MapClaims)

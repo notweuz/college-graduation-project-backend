@@ -18,7 +18,7 @@ func (d *userDatabase) Create(user *model.User) error {
 	return d.db.Create(user).Error
 }
 
-func (d *userDatabase) FindByID(id uint) (*model.User, error) {
+func (d *userDatabase) FindByID(id uint64) (*model.User, error) {
 	var user model.User
 	if err := d.db.First(&user, id).Error; err != nil {
 		return nil, err
@@ -38,6 +38,14 @@ func (d *userDatabase) Update(user *model.User) error {
 	return d.db.Save(user).Error
 }
 
-func (d *userDatabase) Delete(id uint) error {
+func (d *userDatabase) Delete(id uint64) error {
 	return d.db.Delete(&model.User{}, id).Error
+}
+
+func (d *userDatabase) FindByEmail(email string) (*model.User, error) {
+	var user model.User
+	if err := d.db.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

@@ -4,8 +4,15 @@ import (
 	"college-graduation-project-backend/internal"
 	"college-graduation-project-backend/internal/config"
 	"college-graduation-project-backend/internal/database"
+	"college-graduation-project-backend/internal/handler"
 	"college-graduation-project-backend/internal/logger"
+	"college-graduation-project-backend/internal/middleware"
+	"college-graduation-project-backend/internal/router"
+	"college-graduation-project-backend/internal/service"
+	"fmt"
 
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,7 +29,27 @@ func main() {
 	}
 
 	userDatabase := database.NewUserDatabase(internal.Database)
-	hallDatabase := database.NewHallDatabase(internal.Database)
-	reviewDatabase := database.NewReviewDatabase(internal.Database)
-	bookingDatabase := database.NewBookingDatabase(internal.Database)
+	//hallDatabase := database.NewHallDatabase(internal.Database)
+	//reviewDatabase := database.NewReviewDatabase(internal.Database)
+	//bookingDatabase := database.NewBookingDatabase(internal.Database)
+
+	userService := service.NewUserService(userDatabase)
+	authService := service.NewAuthService(userService)
+
+	authHandler := handler.NewAuthHandler(authService)
+	userHandler := handler.NewUserHandler(userService)
+
+	app := fiber.New(fiber.Config{
+		ErrorHandler: handler.ErrorHandler,
+	})
+	app.Use(middleware.Logging())
+	app.Use(cors.New())
+
+	r := router.NewRouter(app, authHandler, userHandler)
+	r.Setup()
+
+	err = app.Listen(fmt.Sprintf(":%d", config.Cfg.AppPort))
+	if err != nil {
+		log.Panic().Err(err).Msg("Error starting server")
+	}
 }

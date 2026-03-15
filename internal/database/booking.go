@@ -18,7 +18,7 @@ func (d *bookingDatabase) Create(booking *model.Booking) error {
 	return d.db.Create(booking).Error
 }
 
-func (d *bookingDatabase) FindByID(id uint) (*model.Booking, error) {
+func (d *bookingDatabase) FindByID(id uint64) (*model.Booking, error) {
 	var booking model.Booking
 	if err := d.db.First(&booking, id).Error; err != nil {
 		return nil, err
@@ -38,6 +38,6 @@ func (d *bookingDatabase) Update(booking *model.Booking) error {
 	return d.db.Save(booking).Error
 }
 
-func (d *bookingDatabase) Delete(id uint) error {
+func (d *bookingDatabase) Delete(id uint64) error {
 	return d.db.Delete(&model.Booking{}, id).Error
 }

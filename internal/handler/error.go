@@ -2,16 +2,26 @@ package handler
 
 import (
 	"college-graduation-project-backend/internal/errs"
+	"errors"
 
 	"github.com/gofiber/fiber/v3"
 )
 
 func ErrorHandler(c fiber.Ctx, err error) error {
-	if appErr, ok := err.(*errs.AppError); ok {
+	var appErr *errs.AppError
+	if errors.As(err, &appErr) {
 		return c.Status(appErr.Status).JSON(fiber.Map{
 			"status":  appErr.Status,
 			"message": appErr.Message,
 			"reason":  appErr.Reason,
+		})
+	}
+
+	if errors.As(err, &fiber.ErrNotFound) {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  fiber.StatusNotFound,
+			"message": fiber.ErrNotFound.Message,
+			"reason":  fiber.ErrNotFound.Error(),
 		})
 	}
 

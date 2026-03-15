@@ -18,6 +18,10 @@ func NewUserService(database database.UserDatabase) UserService {
 }
 
 func (u *userService) Create(user *model.User) error {
+	if _, err := u.FindByEmail(*user.Email); err == nil {
+		return errs.Conflict("Cannot create user", "user with this email already exists")
+	}
+
 	err := u.database.Create(user)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
@@ -28,7 +32,7 @@ func (u *userService) Create(user *model.User) error {
 	return nil
 }
 
-func (u *userService) FindByID(id uint) (*model.User, error) {
+func (u *userService) FindByID(id uint64) (*model.User, error) {
 	user, err := u.database.FindByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -58,7 +62,7 @@ func (u *userService) Update(user *model.User) error {
 	return nil
 }
 
-func (u *userService) Delete(id uint) error {
+func (u *userService) Delete(id uint64) error {
 	err := u.database.Delete(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -67,4 +71,12 @@ func (u *userService) Delete(id uint) error {
 		return errs.InternalServerError("Cannot delete user", "internal server error")
 	}
 	return nil
+}
+
+func (u *userService) FindByEmail(email string) (*model.User, error) {
+	user, err := u.database.FindByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

@@ -18,7 +18,7 @@ func (d *hallDatabase) Create(hall *model.Hall) error {
 	return d.db.Create(hall).Error
 }
 
-func (d *hallDatabase) FindByID(id uint) (*model.Hall, error) {
+func (d *hallDatabase) FindByID(id uint64) (*model.Hall, error) {
 	var hall model.Hall
 	if err := d.db.First(&hall, id).Error; err != nil {
 		return nil, err
@@ -38,6 +38,6 @@ func (d *hallDatabase) Update(hall *model.Hall) error {
 	return d.db.Save(hall).Error
 }
 
-func (d *hallDatabase) Delete(id uint) error {
+func (d *hallDatabase) Delete(id uint64) error {
 	return d.db.Delete(&model.Hall{}, id).Error
 }
