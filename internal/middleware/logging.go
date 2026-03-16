@@ -17,7 +17,7 @@ func Logging() fiber.Handler {
 		status := c.Response().StatusCode()
 
 		if err != nil {
-			log.Debug().Msgf("HTTP %s %s failed in %v", c.Method(), c.Path(), duration)
+			log.Debug().Msgf("HTTP %s %s failed in %v | err: %s", c.Method(), c.Path(), duration, err.Error())
 			return err
 		}
 
