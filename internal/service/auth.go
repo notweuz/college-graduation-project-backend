@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -44,6 +45,8 @@ func (s *authService) Register(req *request.Register) (string, error) {
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	})
 
+	log.Info().Uint64("id", user.ID).Str("email", *user.Email).Msg("User successfully registered")
+
 	return token.SignedString([]byte(config.Cfg.JwtSecret))
 }
 
@@ -62,6 +65,7 @@ func (s *authService) Login(req *request.Login) (string, error) {
 		"role":    user.Role,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	})
+	log.Info().Uint64("id", user.ID).Str("email", *user.Email).Msg("User successfully logged in")
 
 	return token.SignedString([]byte(config.Cfg.JwtSecret))
 }

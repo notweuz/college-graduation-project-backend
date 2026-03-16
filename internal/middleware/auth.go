@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rs/zerolog/log"
 )
 
 func Protected() fiber.Handler {
@@ -36,6 +37,7 @@ func Protected() fiber.Handler {
 func GetCurrentUserID(c fiber.Ctx) (uint64, error) {
 	userID, ok := c.Locals("user_id").(float64)
 	if !ok {
+		log.Error().Msg("Cannot get current user id")
 		return 0, errs.Unauthorized("Not authorized", "user_id not found in locals")
 	}
 	return uint64(userID), nil
