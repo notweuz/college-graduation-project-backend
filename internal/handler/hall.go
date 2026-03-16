@@ -21,3 +21,12 @@ func (h *HallHandler) GetAllHalls(c fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(halls)
 }
+
+func (h *HallHandler) GetHallById(c fiber.Ctx) error {
+	id := fiber.Params[uint64](c, "id")
+	hall, err := h.hallService.FindByID(id)
+	if err != nil {
+		return err
+	}
+	return c.Status(fiber.StatusOK).JSON(hall)
+}
