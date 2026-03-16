@@ -11,13 +11,15 @@ type Router struct {
 	app         *fiber.App
 	authHandler *handler.AuthHandler
 	userHandler *handler.UserHandler
+	hallHandler *handler.HallHandler
 }
 
-func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler) *Router {
+func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler) *Router {
 	return &Router{
 		app:         app,
 		authHandler: authHandler,
 		userHandler: userHandler,
+		hallHandler: hallHandler,
 	}
 }
 
@@ -26,6 +28,7 @@ func (r *Router) Setup() {
 
 	r.setupAuthRoutes(api)
 	r.setupUserRoutes(api)
+	r.setupHallRoutes(api)
 }
 
 func (r *Router) setupAuthRoutes(api fiber.Router) {
@@ -40,4 +43,10 @@ func (r *Router) setupUserRoutes(api fiber.Router) {
 
 	users.Get("/me", r.userHandler.GetProfile)
 	//users.Patch("/me", r.userHandler.UpdateProfile)
+}
+
+func (r *Router) setupHallRoutes(api fiber.Router) {
+	halls := api.Group("/halls", middleware.Protected())
+
+	halls.Get("/", r.hallHandler.GetAllHalls)
 }

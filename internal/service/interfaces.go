@@ -18,3 +18,11 @@ type AuthService interface {
 	Register(req *request.Register) (string, error)
 	Login(req *request.Login) (string, error)
 }
+
+type HallService interface {
+	Create(hall *model.Hall) error
+	FindByID(id uint64) (*model.Hall, error)
+	FindAll() ([]model.Hall, error)
+	Update(hall *model.Hall) error
+	Delete(id uint64) error
+}

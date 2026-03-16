@@ -29,15 +29,17 @@ func main() {
 	}
 
 	userDatabase := database.NewUserDatabase(internal.Database)
-	//hallDatabase := database.NewHallDatabase(internal.Database)
+	hallDatabase := database.NewHallDatabase(internal.Database)
 	//reviewDatabase := database.NewReviewDatabase(internal.Database)
 	//bookingDatabase := database.NewBookingDatabase(internal.Database)
 
 	userService := service.NewUserService(userDatabase)
 	authService := service.NewAuthService(userService)
+	hallService := service.NewHallService(hallDatabase)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
+	hallHandler := handler.NewHallHandler(hallService)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: handler.ErrorHandler,
@@ -45,7 +47,7 @@ func main() {
 	app.Use(middleware.Logging())
 	app.Use(cors.New())
 
-	r := router.NewRouter(app, authHandler, userHandler)
+	r := router.NewRouter(app, authHandler, userHandler, hallHandler)
 	r.Setup()
 
 	err = app.Listen(fmt.Sprintf(":%d", config.Cfg.AppPort))
