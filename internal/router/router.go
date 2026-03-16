@@ -42,7 +42,7 @@ func (r *Router) setupUserRoutes(api fiber.Router) {
 	users := api.Group("/users", middleware.Protected())
 
 	users.Get("/me", r.userHandler.GetProfile)
-	//users.Patch("/me", r.userHandler.UpdateProfile)
+	users.Patch("/me", r.userHandler.UpdateProfile)
 }
 
 func (r *Router) setupHallRoutes(api fiber.Router) {

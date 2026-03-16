@@ -3,6 +3,8 @@ package service
 import (
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/request"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 type UserService interface {
@@ -12,6 +14,7 @@ type UserService interface {
 	Update(user *model.User) error
 	FindByEmail(email string) (*model.User, error)
 	Delete(id uint64) error
+	UpdateProfile(ctx fiber.Ctx, updateProfile request.UpdateProfile) (*model.User, error)
 }
 
 type AuthService interface {
