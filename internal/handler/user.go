@@ -2,6 +2,7 @@ package handler
 
 import (
 	"college-graduation-project-backend/internal/middleware"
+	"college-graduation-project-backend/internal/model/response"
 	"college-graduation-project-backend/internal/service"
 
 	"github.com/gofiber/fiber/v3"
@@ -25,6 +26,7 @@ func (h *UserHandler) GetProfile(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	userShort := response.NewUserShort(user.ID, user.FullName, user.Email)
 
-	return c.Status(fiber.StatusOK).JSON(user)
+	return c.Status(fiber.StatusOK).JSON(userShort)
 }
