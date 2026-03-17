@@ -32,3 +32,20 @@ func (b bookingService) FindAllFromUser(userID uint64, from, to *time.Time) ([]m
 	}
 	return bookings, nil
 }
+
+func (b bookingService) FindByID(userID, id uint64) (*model.Booking, error) {
+	user, err := b.userService.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	booking, err := b.bookingDatabase.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if booking.User.ID != user.ID {
+		return nil, errs.Forbidden("Cannot find booking by ID", "This booking does not belong to you")
+	}
+
+	return booking, nil
+}

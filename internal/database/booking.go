@@ -21,7 +21,7 @@ func (d *bookingDatabase) Create(booking *model.Booking) error {
 
 func (d *bookingDatabase) FindByID(id uint64) (*model.Booking, error) {
 	var booking model.Booking
-	if err := d.db.First(&booking, id).Error; err != nil {
+	if err := d.db.Preload("Hall").First(&booking, id).Error; err != nil {
 		return nil, err
 	}
 	return &booking, nil

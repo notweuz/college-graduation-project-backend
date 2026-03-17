@@ -34,4 +34,5 @@ type HallService interface {
 
 type BookingService interface {
 	FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error)
+	FindByID(userID, id uint64) (*model.Booking, error)
 }

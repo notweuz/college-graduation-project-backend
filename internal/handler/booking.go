@@ -51,3 +51,16 @@ func (h *BookingHandler) GetAllFromUser(c fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(bookingsFull)
 }
+
+func (h *BookingHandler) GetByID(c fiber.Ctx) error {
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+	id := fiber.Params[uint64](c, "id")
+	booking, err := h.bookingService.FindByID(userID, id)
+	if err != nil {
+		return err
+	}
+	return c.Status(fiber.StatusOK).JSON(response.NewBookingFull(booking.ID, response.HallFull{}, response.UserShort{}, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt))
+}
