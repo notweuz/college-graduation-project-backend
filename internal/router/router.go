@@ -59,4 +59,5 @@ func (r *Router) setupAdminHallRoutes(api fiber.Router) {
 
 	halls.Post("/", r.hallHandler.Create)
 	halls.Patch("/:id", r.hallHandler.Update)
+	halls.Delete("/:id", r.hallHandler.Delete)
 }

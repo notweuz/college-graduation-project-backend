@@ -28,5 +28,5 @@ type HallService interface {
 	FindAll() ([]model.Hall, error)
 	FindAllActive() ([]model.Hall, error)
 	Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*model.Hall, error)
-	Delete(id uint64) error
+	Delete(ctx fiber.Ctx, id uint64) error
 }

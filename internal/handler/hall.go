@@ -80,3 +80,12 @@ func (h *HallHandler) Update(c fiber.Ctx) error {
 	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive)
 	return c.Status(fiber.StatusOK).JSON(hallResponse)
 }
+
+func (h *HallHandler) Delete(c fiber.Ctx) error {
+	id := fiber.Params[uint64](c, "id")
+	err := h.hallService.Delete(c, id)
+	if err != nil {
+		return err
+	}
+	return c.Status(fiber.StatusNoContent).JSON(nil)
+}
