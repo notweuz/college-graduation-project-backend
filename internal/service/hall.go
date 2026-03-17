@@ -3,32 +3,52 @@ package service
 import (
 	"college-graduation-project-backend/internal/database"
 	"college-graduation-project-backend/internal/errs"
+	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model"
+	"college-graduation-project-backend/internal/model/enum"
+	"college-graduation-project-backend/internal/model/request"
 	"errors"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
 type hallService struct {
-	database database.HallDatabase
+	database    database.HallDatabase
+	userService UserService
 }
 
-func NewHallService(database database.HallDatabase) HallService {
-	return &hallService{database: database}
+func NewHallService(database database.HallDatabase, userService UserService) HallService {
+	return &hallService{database: database, userService: userService}
 }
 
-func (s *hallService) Create(hall *model.Hall) error {
-	err := s.database.Create(hall)
+func (s *hallService) Create(ctx fiber.Ctx, hallCreate *request.HallCreate) (*model.Hall, error) {
+	userId, err := middleware.GetCurrentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.userService.FindByID(userId)
+	if err != nil {
+		return nil, err
+	}
+	if user.Role != enum.RoleAdmin {
+		log.Error().Uint64("id", userId).Msg("User is not admin")
+		return nil, errs.Forbidden("Forbidden", "user is not admin")
+	}
+
+	hall := model.NewHall(0, hallCreate.Name, hallCreate.Description, hallCreate.PricePerHour, true)
+
+	err = s.database.Create(hall)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot create hall")
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return errs.Conflict("Cannot create hall", "hall already exists")
+			return nil, errs.Conflict("Cannot create hall", "hall already exists")
 		}
-		return errs.InternalServerError("Cannot create hall", "internal server error")
+		return nil, errs.InternalServerError("Cannot create hall", "internal server error")
 	}
 	log.Info().Uint64("id", hall.ID).Str("name", hall.Name).Msg("Hall successfully created")
-	return nil
+	return hall, nil
 }
 
 func (s *hallService) FindByID(id uint64) (*model.Hall, error) {

@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/model/request"
+	"college-graduation-project-backend/internal/model/response"
 	"college-graduation-project-backend/internal/service"
+	"college-graduation-project-backend/internal/validation"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -29,4 +32,20 @@ func (h *HallHandler) GetHallById(c fiber.Ctx) error {
 		return err
 	}
 	return c.Status(fiber.StatusOK).JSON(hall)
+}
+
+func (h *HallHandler) Create(c fiber.Ctx) error {
+	var hallCreate request.HallCreate
+	if err := c.Bind().Body(&hallCreate); err != nil {
+		return err
+	}
+	if err := validation.Validate(&hallCreate); err != nil {
+		return err
+	}
+	hall, err := h.hallService.Create(c, &hallCreate)
+	if err != nil {
+		return err
+	}
+	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive)
+	return c.Status(fiber.StatusCreated).JSON(hallResponse)
 }

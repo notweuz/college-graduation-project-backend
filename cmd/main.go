@@ -35,7 +35,7 @@ func main() {
 
 	userService := service.NewUserService(userDatabase)
 	authService := service.NewAuthService(userService)
-	hallService := service.NewHallService(hallDatabase)
+	hallService := service.NewHallService(hallDatabase, userService)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)

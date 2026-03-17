@@ -25,10 +25,12 @@ func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *ha
 
 func (r *Router) Setup() {
 	api := r.app.Group("/api")
+	admin := api.Group("/admin")
 
 	r.setupAuthRoutes(api)
 	r.setupUserRoutes(api)
 	r.setupHallRoutes(api)
+	r.setupAdminHallRoutes(admin)
 }
 
 func (r *Router) setupAuthRoutes(api fiber.Router) {
@@ -50,4 +52,10 @@ func (r *Router) setupHallRoutes(api fiber.Router) {
 
 	halls.Get("/", r.hallHandler.GetAllHalls)
 	halls.Get("/:id", r.hallHandler.GetHallById)
+}
+
+func (r *Router) setupAdminHallRoutes(api fiber.Router) {
+	halls := api.Group("/halls", middleware.Protected())
+
+	halls.Post("/", r.hallHandler.Create)
 }

@@ -7,3 +7,13 @@ type Hall struct {
 	PricePerHour float64 `gorm:"not null"`
 	IsActive     bool
 }
+
+func NewHall(id uint64, name, description string, pricePerHour float64, isActive bool) *Hall {
+	return &Hall{
+		ID:           id,
+		Name:         name,
+		Description:  description,
+		PricePerHour: pricePerHour,
+		IsActive:     isActive,
+	}
+}

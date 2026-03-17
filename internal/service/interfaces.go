@@ -23,7 +23,7 @@ type AuthService interface {
 }
 
 type HallService interface {
-	Create(hall *model.Hall) error
+	Create(ctx fiber.Ctx, hallCreate *request.HallCreate) (*model.Hall, error)
 	FindByID(id uint64) (*model.Hall, error)
 	FindAll() ([]model.Hall, error)
 	Update(hall *model.Hall) error
