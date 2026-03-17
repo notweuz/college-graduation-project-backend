@@ -42,7 +42,7 @@ func (s *authService) Register(req *request.Register) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"exp":     time.Now().Add(30 * 24 * time.Hour).Unix(),
 	})
 
 	log.Info().Uint64("id", user.ID).Str("email", *user.Email).Msg("User successfully registered")
@@ -63,7 +63,7 @@ func (s *authService) Login(req *request.Login) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"exp":     time.Now().Add(30 * 24 * time.Hour).Unix(),
 	})
 	log.Info().Uint64("id", user.ID).Str("email", *user.Email).Msg("User successfully logged in")
 
