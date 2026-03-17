@@ -91,7 +91,9 @@ func (h *BookingHandler) GetAllFromUser(c fiber.Ctx) error {
 	}
 	bookingsFull := make([]response.BookingFull, len(bookings))
 	for i, booking := range bookings {
-		bookingsFull[i] = response.NewBookingFull(booking.ID, response.HallFull{}, response.UserShort{}, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt)
+		hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerHour, booking.Hall.IsActive)
+		userShort := response.NewUserShort(booking.User.ID, booking.User.FullName, booking.User.Email)
+		bookingsFull[i] = response.NewBookingFull(booking.ID, *hallFull, *userShort, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt)
 	}
 	return c.Status(fiber.StatusOK).JSON(bookingsFull)
 }

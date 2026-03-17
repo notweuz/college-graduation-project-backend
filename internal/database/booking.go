@@ -47,7 +47,7 @@ func (d *bookingDatabase) FindAllFromUser(userID uint64, from, to *time.Time) ([
 		query = query.Where("end_date_time <= ?", *to)
 	}
 
-	if err := query.Preload("Hall").Find(&bookings).Error; err != nil {
+	if err := query.Preload("Hall").Preload("User").Find(&bookings).Error; err != nil {
 		return nil, err
 	}
 	return bookings, nil
