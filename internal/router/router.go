@@ -8,18 +8,20 @@ import (
 )
 
 type Router struct {
-	app         *fiber.App
-	authHandler *handler.AuthHandler
-	userHandler *handler.UserHandler
-	hallHandler *handler.HallHandler
+	app            *fiber.App
+	authHandler    *handler.AuthHandler
+	userHandler    *handler.UserHandler
+	hallHandler    *handler.HallHandler
+	bookingHandler *handler.BookingHandler
 }
 
-func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler) *Router {
+func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler, bookingHandler *handler.BookingHandler) *Router {
 	return &Router{
-		app:         app,
-		authHandler: authHandler,
-		userHandler: userHandler,
-		hallHandler: hallHandler,
+		app:            app,
+		authHandler:    authHandler,
+		userHandler:    userHandler,
+		hallHandler:    hallHandler,
+		bookingHandler: bookingHandler,
 	}
 }
 
@@ -30,6 +32,7 @@ func (r *Router) Setup() {
 	r.setupAuthRoutes(api)
 	r.setupUserRoutes(api)
 	r.setupHallRoutes(api)
+	r.setupBookingRoutes(api)
 	r.setupAdminHallRoutes(admin)
 }
 
@@ -52,6 +55,12 @@ func (r *Router) setupHallRoutes(api fiber.Router) {
 
 	halls.Get("/", r.hallHandler.GetAllHalls)
 	halls.Get("/:id", r.hallHandler.GetHallById)
+}
+
+func (r *Router) setupBookingRoutes(api fiber.Router) {
+	bookings := api.Group("/bookings", middleware.Protected())
+
+	bookings.Get("/my", r.bookingHandler.GetAllFromUser)
 }
 
 func (r *Router) setupAdminHallRoutes(api fiber.Router) {

@@ -1,6 +1,9 @@
 package database
 
-import "college-graduation-project-backend/internal/model"
+import (
+	"college-graduation-project-backend/internal/model"
+	"time"
+)
 
 type UserDatabase interface {
 	Create(user *model.User) error
@@ -32,6 +35,7 @@ type BookingDatabase interface {
 	Create(booking *model.Booking) error
 	FindByID(id uint64) (*model.Booking, error)
 	FindAll() ([]model.Booking, error)
+	FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error)
 	Update(booking *model.Booking) error
 	Delete(id uint64) error
 }

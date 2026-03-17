@@ -2,6 +2,7 @@ package database
 
 import (
 	"college-graduation-project-backend/internal/model"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -29,6 +30,24 @@ func (d *bookingDatabase) FindByID(id uint64) (*model.Booking, error) {
 func (d *bookingDatabase) FindAll() ([]model.Booking, error) {
 	var bookings []model.Booking
 	if err := d.db.Find(&bookings).Error; err != nil {
+		return nil, err
+	}
+	return bookings, nil
+}
+
+func (d *bookingDatabase) FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error) {
+	var bookings []model.Booking
+	query := d.db.Where("user_id = ?", userID)
+
+	if from != nil {
+		query = query.Where("start_date_time >= ?", *from)
+	}
+
+	if to != nil {
+		query = query.Where("end_date_time <= ?", *to)
+	}
+
+	if err := query.Preload("Hall").Find(&bookings).Error; err != nil {
 		return nil, err
 	}
 	return bookings, nil
