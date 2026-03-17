@@ -40,6 +40,7 @@ func (u *userService) Create(user *model.User) error {
 
 func (u *userService) FindByID(id uint64) (*model.User, error) {
 	user, err := u.database.FindByID(id)
+	log.Info().Uint64("id", id).Msg("Trying to find user")
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot find user")
 		if errors.Is(err, gorm.ErrRecordNotFound) {

@@ -74,17 +74,46 @@ func (s *hallService) FindAll() ([]model.Hall, error) {
 	return halls, nil
 }
 
-func (s *hallService) Update(hall *model.Hall) error {
-	err := s.database.Update(hall)
+func (s *hallService) Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*model.Hall, error) {
+	id := fiber.Params[uint64](ctx, "id")
+	userId, err := middleware.GetCurrentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.userService.FindByID(userId)
+	if err != nil {
+		return nil, err
+	}
+	if user.Role != enum.RoleAdmin {
+		log.Error().Uint64("id", userId).Msg("User is not admin")
+		return nil, errs.Forbidden("Forbidden", "user is not admin")
+	}
+	hall, err := s.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if hallUpdate.Name != nil {
+		hall.Name = *hallUpdate.Name
+	}
+	if hallUpdate.Description != nil {
+		hall.Description = *hallUpdate.Description
+	}
+	if hallUpdate.PricePerHour != nil {
+		hall.PricePerHour = *hallUpdate.PricePerHour
+	}
+	if hallUpdate.IsActive != nil {
+		hall.IsActive = *hallUpdate.IsActive
+	}
+	err = s.database.Update(hall)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot update hall")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errs.NotFound("Cannot update hall", "hall with that id doesnt exist in database")
+			return nil, errs.NotFound("Cannot update hall", "hall with that id doesnt exist in database")
 		}
-		return errs.InternalServerError("Cannot update hall", "internal server error")
+		return nil, errs.InternalServerError("Cannot update hall", "internal server error")
 	}
 	log.Info().Uint64("id", hall.ID).Str("name", hall.Name).Msg("Hall successfully updated")
-	return nil
+	return hall, nil
 }
 
 func (s *hallService) Delete(id uint64) error {

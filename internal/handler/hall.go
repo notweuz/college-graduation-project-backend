@@ -49,3 +49,19 @@ func (h *HallHandler) Create(c fiber.Ctx) error {
 	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive)
 	return c.Status(fiber.StatusCreated).JSON(hallResponse)
 }
+
+func (h *HallHandler) Update(c fiber.Ctx) error {
+	var hallUpdate request.HallUpdate
+	if err := c.Bind().Body(&hallUpdate); err != nil {
+		return err
+	}
+	if err := validation.Validate(&hallUpdate); err != nil {
+		return err
+	}
+	hall, err := h.hallService.Update(c, &hallUpdate)
+	if err != nil {
+		return err
+	}
+	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive)
+	return c.Status(fiber.StatusOK).JSON(hallResponse)
+}

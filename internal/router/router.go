@@ -58,4 +58,5 @@ func (r *Router) setupAdminHallRoutes(api fiber.Router) {
 	halls := api.Group("/halls", middleware.Protected())
 
 	halls.Post("/", r.hallHandler.Create)
+	halls.Patch("/:id", r.hallHandler.Update)
 }
