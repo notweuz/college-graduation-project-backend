@@ -26,6 +26,7 @@ type HallService interface {
 	Create(ctx fiber.Ctx, hallCreate *request.HallCreate) (*model.Hall, error)
 	FindByID(id uint64) (*model.Hall, error)
 	FindAll() ([]model.Hall, error)
+	FindAllActive() ([]model.Hall, error)
 	Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*model.Hall, error)
 	Delete(id uint64) error
 }

@@ -41,3 +41,11 @@ func (d *hallDatabase) Update(hall *model.Hall) error {
 func (d *hallDatabase) Delete(id uint64) error {
 	return d.db.Delete(&model.Hall{}, id).Error
 }
+
+func (d *hallDatabase) FindAllActive() ([]model.Hall, error) {
+	var halls []model.Hall
+	if err := d.db.Where("is_active = ?", true).Find(&halls).Error; err != nil {
+		return nil, err
+	}
+	return halls, nil
+}

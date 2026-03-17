@@ -74,6 +74,16 @@ func (s *hallService) FindAll() ([]model.Hall, error) {
 	return halls, nil
 }
 
+func (s *hallService) FindAllActive() ([]model.Hall, error) {
+	halls, err := s.database.FindAllActive()
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get active halls")
+		return nil, errs.InternalServerError("Cannot get active halls", "internal server error")
+	}
+	log.Info().Int("amount", len(halls)).Msg("Active halls successfully found")
+	return halls, nil
+}
+
 func (s *hallService) Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*model.Hall, error) {
 	id := fiber.Params[uint64](ctx, "id")
 	userId, err := middleware.GetCurrentUserID(ctx)

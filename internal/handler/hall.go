@@ -18,9 +18,24 @@ func NewHallHandler(hallService service.HallService) *HallHandler {
 }
 
 func (h *HallHandler) GetAllHalls(c fiber.Ctx) error {
-	halls, err := h.hallService.FindAll()
-	if err != nil {
-		return err
+	onlyActive := fiber.Query[bool](c, "active")
+	var halls []response.HallFull
+	if onlyActive {
+		hallsFull, err := h.hallService.FindAllActive()
+		if err != nil {
+			return err
+		}
+		for _, hall := range hallsFull {
+			halls = append(halls, *response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive))
+		}
+	} else {
+		hallsFull, err := h.hallService.FindAll()
+		if err != nil {
+			return err
+		}
+		for _, hall := range hallsFull {
+			halls = append(halls, *response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive))
+		}
 	}
 	return c.Status(fiber.StatusOK).JSON(halls)
 }
