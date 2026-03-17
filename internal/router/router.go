@@ -48,7 +48,7 @@ func (r *Router) setupUserRoutes(api fiber.Router) {
 }
 
 func (r *Router) setupHallRoutes(api fiber.Router) {
-	halls := api.Group("/halls", middleware.Protected())
+	halls := api.Group("/halls")
 
 	halls.Get("/", r.hallHandler.GetAllHalls)
 	halls.Get("/:id", r.hallHandler.GetHallById)
