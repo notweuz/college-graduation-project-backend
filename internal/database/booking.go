@@ -60,3 +60,21 @@ func (d *bookingDatabase) Update(booking *model.Booking) error {
 func (d *bookingDatabase) Delete(id uint64) error {
 	return d.db.Delete(&model.Booking{}, id).Error
 }
+
+func (d *bookingDatabase) CheckConflict(hallID uint64, startDateTime, endDateTime time.Time) (bool, error) {
+	var count int64
+
+	err := d.db.Model(&model.Booking{}).
+		Where("hall_id = ?", hallID).
+		Where("(start_date_time < ? AND end_date_time > ?) OR (start_date_time < ? AND end_date_time > ?) OR (start_date_time >= ? AND end_date_time <= ?)",
+			endDateTime, startDateTime,
+			startDateTime, endDateTime,
+			startDateTime, endDateTime).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
