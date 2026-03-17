@@ -23,7 +23,7 @@ func NewUserService(database database.UserDatabase) UserService {
 
 func (u *userService) Create(user *model.User) error {
 	if _, err := u.FindByEmail(*user.Email); err == nil {
-		log.Error().Err(err).Msg("Cannot create user")
+		log.Warn().Err(err).Msg("Cannot create user")
 		return errs.Conflict("Cannot create user", "user with this email already exists")
 	}
 

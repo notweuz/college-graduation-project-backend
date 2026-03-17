@@ -33,7 +33,7 @@ func (s *hallService) Create(ctx fiber.Ctx, hallCreate *request.HallCreate) (*mo
 		return nil, err
 	}
 	if user.Role != enum.RoleAdmin {
-		log.Error().Uint64("id", userId).Msg("User is not admin")
+		log.Warn().Uint64("id", userId).Msg("User is not admin")
 		return nil, errs.Forbidden("Forbidden", "user is not admin")
 	}
 
@@ -95,7 +95,7 @@ func (s *hallService) Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*mo
 		return nil, err
 	}
 	if user.Role != enum.RoleAdmin {
-		log.Error().Uint64("id", userId).Msg("User is not admin")
+		log.Warn().Uint64("id", userId).Msg("User is not admin")
 		return nil, errs.Forbidden("Forbidden", "user is not admin")
 	}
 	hall, err := s.FindByID(id)
@@ -136,7 +136,7 @@ func (s *hallService) Delete(ctx fiber.Ctx, id uint64) error {
 		return err
 	}
 	if user.Role != enum.RoleAdmin {
-		log.Error().Uint64("id", userId).Msg("User is not admin")
+		log.Warn().Uint64("id", userId).Msg("User is not admin")
 		return errs.Forbidden("Forbidden", "user is not admin")
 	}
 	err = s.database.Delete(id)
