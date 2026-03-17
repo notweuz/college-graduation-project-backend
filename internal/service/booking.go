@@ -23,7 +23,7 @@ func NewBookingService(bookingDatabase database.BookingDatabase, userService Use
 }
 
 func (b bookingService) Create(userID uint64, req *request.BookingCreate) (*model.Booking, error) {
-	_, err := b.userService.FindByID(userID)
+	user, err := b.userService.FindByID(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +58,8 @@ func (b bookingService) Create(userID uint64, req *request.BookingCreate) (*mode
 	totalPrice := hall.PricePerHour * duration.Hours()
 
 	booking := &model.Booking{
+		User:          *user,
+		Hall:          *hall,
 		HallID:        req.HallID,
 		UserID:        userID,
 		StartDateTime: req.StartDateTime,
