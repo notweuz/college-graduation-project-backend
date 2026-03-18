@@ -49,9 +49,11 @@ func main() {
 	app.Use(middleware.Logging())
 	app.Use(cors.New())
 
+	log.Info().Msg("Loading routers")
 	r := router.NewRouter(app, authHandler, userHandler, hallHandler, bookingHandler)
 	r.Setup()
 
+	log.Info().Int("port", config.Cfg.AppPort).Msg("Starting server")
 	err = app.Listen(fmt.Sprintf(":%d", config.Cfg.AppPort))
 	if err != nil {
 		log.Panic().Err(err).Msg("Error starting server")
