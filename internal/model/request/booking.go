@@ -10,6 +10,6 @@ type BookingCreate struct {
 }
 
 type BookingUpdate struct {
-	TotalPrice *float64 `json:"total_price" validate:"required"`
+	TotalPrice *float64 `json:"total_price"`
 	Comment    *string  `json:"comment" validate:"max=255"`
 }
