@@ -56,6 +56,7 @@ func (r *Router) setupUserRoutes(api fiber.Router) {
 	users := api.Group("/users", middleware.Protected())
 
 	users.Get("/me", r.userHandler.GetProfile)
+	users.Get("/me/role", r.userHandler.GetRole)
 	users.Patch("/me", r.userHandler.UpdateProfile)
 }
 

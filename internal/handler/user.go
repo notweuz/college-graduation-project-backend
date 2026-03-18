@@ -72,3 +72,27 @@ func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
 	userShort := response.NewUserShort(user.ID, user.FullName, user.Email)
 	return c.Status(fiber.StatusOK).JSON(userShort)
 }
+
+// GetRole godoc
+// @Summary Get current user role
+// @Description Возвращает роль текущего авторизованного пользователя.
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Role
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/users/me/role [get]
+func (h *UserHandler) GetRole(c fiber.Ctx) error {
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+	user, err := h.userService.FindByID(userID)
+	if err != nil {
+		return err
+	}
+	userRole := response.Role{Role: user.Role.String()}
+	return c.Status(fiber.StatusOK).JSON(userRole)
+}

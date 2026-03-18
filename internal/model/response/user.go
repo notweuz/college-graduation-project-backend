@@ -9,3 +9,7 @@ type UserShort struct {
 func NewUserShort(id uint64, fullName, email *string) *UserShort {
 	return &UserShort{ID: id, FullName: fullName, Email: email}
 }
+
+type Role struct {
+	Role string `json:"role"`
+}
