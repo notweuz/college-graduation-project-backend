@@ -78,3 +78,18 @@ func (d *bookingDatabase) CheckConflict(hallID uint64, startDateTime, endDateTim
 
 	return count > 0, nil
 }
+
+func (d *bookingDatabase) FindBookingsForHall(hallID uint64, from, to time.Time) ([]model.Booking, error) {
+	var bookings []model.Booking
+
+	err := d.db.Where("hall_id = ?", hallID).
+		Where("start_date_time < ? AND end_date_time > ?", to, from).
+		Order("start_date_time").
+		Find(&bookings).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
+}

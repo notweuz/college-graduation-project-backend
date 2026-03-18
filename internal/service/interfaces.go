@@ -3,6 +3,7 @@ package service
 import (
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/request"
+	"college-graduation-project-backend/internal/model/response"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -30,6 +31,7 @@ type HallService interface {
 	FindAllActive() ([]model.Hall, error)
 	Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*model.Hall, error)
 	Delete(ctx fiber.Ctx, id uint64) error
+	GetAvailability(hallID uint64, from, to time.Time) ([]response.HallAvailability, error)
 }
 
 type BookingService interface {

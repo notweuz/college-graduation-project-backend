@@ -39,4 +39,5 @@ type BookingDatabase interface {
 	Update(booking *model.Booking) error
 	Delete(id uint64) error
 	CheckConflict(hallID uint64, startDateTime, endDateTime time.Time) (bool, error)
+	FindBookingsForHall(hallID uint64, from, to time.Time) ([]model.Booking, error)
 }

@@ -55,7 +55,7 @@ func (r *Router) setupHallRoutes(api fiber.Router) {
 
 	halls.Get("/", r.hallHandler.GetAllHalls)
 	halls.Get("/:id", r.hallHandler.GetHallById)
-	// TODO: /:id/availability endpoint
+	halls.Get("/:id/availability", r.hallHandler.GetHallAvailability)
 }
 
 func (r *Router) setupBookingRoutes(api fiber.Router) {

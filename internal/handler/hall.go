@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model/request"
 	"college-graduation-project-backend/internal/model/response"
 	"college-graduation-project-backend/internal/service"
 	"college-graduation-project-backend/internal/validation"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -88,4 +90,47 @@ func (h *HallHandler) Delete(c fiber.Ctx) error {
 		return err
 	}
 	return c.Status(fiber.StatusNoContent).JSON(nil)
+}
+
+func (h *HallHandler) GetHallAvailability(c fiber.Ctx) error {
+	id := fiber.Params[uint64](c, "id")
+
+	dateStr := c.Query("date")
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
+
+	var from, to time.Time
+	var err error
+
+	if dateStr != "" {
+		from, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return errs.BadRequest("Invalid 'date' format, use YYYY-MM-DD", err.Error())
+		}
+		to = from.Add(24 * time.Hour)
+	} else if fromStr != "" && toStr != "" {
+		from, err = time.Parse("2006-01-02", fromStr)
+		if err != nil {
+			return errs.BadRequest("Invalid 'from' format, use YYYY-MM-DD", err.Error())
+		}
+		to, err = time.Parse("2006-01-02", toStr)
+		if err != nil {
+			return errs.BadRequest("Invalid 'to' format, use YYYY-MM-DD", err.Error())
+		}
+		to = to.Add(24 * time.Hour)
+	} else {
+		return errs.BadRequest("Invalid parameters", "provide either 'date' or both 'from' and 'to' parameters")
+	}
+
+	_, err = h.hallService.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	availability, err := h.hallService.GetAvailability(id, from, to)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(availability)
 }
