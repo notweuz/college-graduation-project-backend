@@ -6,7 +6,10 @@ import (
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
 	"college-graduation-project-backend/internal/model/request"
+	"errors"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type bookingService struct {
@@ -138,4 +141,32 @@ func (b *bookingService) FindAll(userID uint64, hallID, bookingUserID *uint64, f
 		return nil, errs.InternalServerError("Cannot get all bookings", err.Error())
 	}
 	return bookings, nil
+}
+
+func (b *bookingService) Update(userID, id uint64, req *request.BookingUpdate) (*model.Booking, error) {
+	user, err := b.userService.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if user.Role != enum.RoleAdmin {
+		return nil, errs.Forbidden("Cannot update booking", "You do not have permission to update this booking")
+	}
+	booking, err := b.FindByID(userID, id)
+	if err != nil {
+		return nil, err
+	}
+	if req.Comment != nil {
+		booking.Comment = *req.Comment
+	}
+	if req.TotalPrice != nil {
+		booking.TotalPrice = *req.TotalPrice
+	}
+	err = b.bookingDatabase.Update(booking)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.NotFound("Cannot update booking", "Booking not found")
+		}
+		return nil, errs.InternalServerError("Cannot update booking", err.Error())
+	}
+	return booking, nil
 }

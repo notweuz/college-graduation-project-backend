@@ -177,3 +177,26 @@ func (h *BookingHandler) GetAll(c fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(bookingFulls)
 }
+
+func (h *BookingHandler) Update(c fiber.Ctx) error {
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+	id := fiber.Params[uint64](c, "id")
+	var req request.BookingUpdate
+	if err := c.Bind().Body(&req); err != nil {
+		return err
+	}
+	if err = validation.Validate(&req); err != nil {
+		return err
+	}
+	booking, err := h.bookingService.Update(userID, id, &req)
+	if err != nil {
+		return err
+	}
+	userShort := response.NewUserShort(booking.User.ID, booking.User.FullName, booking.User.Email)
+	hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerHour, booking.Hall.IsActive)
+	bookingFull := response.NewBookingFull(booking.ID, *hallFull, *userShort, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt)
+	return c.Status(fiber.StatusOK).JSON(bookingFull)
+}

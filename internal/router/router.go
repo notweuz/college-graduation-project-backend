@@ -80,5 +80,6 @@ func (r *Router) setupAdminBookingRoutes(api fiber.Router) {
 	bookings := api.Group("/bookings", middleware.Protected())
 
 	bookings.Get("/", r.bookingHandler.GetAll)
+	bookings.Patch("/:id", r.bookingHandler.Update)
 	bookings.Get("/:id", r.bookingHandler.GetByID)
 }
