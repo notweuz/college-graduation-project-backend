@@ -30,12 +30,13 @@ func main() {
 
 	userDatabase := database.NewUserDatabase(internal.Database)
 	hallDatabase := database.NewHallDatabase(internal.Database)
+	hallImageDatabase := database.NewHallImageDatabase(internal.Database)
 	reviewDatabase := database.NewReviewDatabase(internal.Database)
 	bookingDatabase := database.NewBookingDatabase(internal.Database)
 
 	userService := service.NewUserService(userDatabase)
 	authService := service.NewAuthService(userService)
-	hallService := service.NewHallService(hallDatabase, bookingDatabase, userService)
+	hallService := service.NewHallService(hallDatabase, bookingDatabase, userService, hallImageDatabase)
 	bookingService := service.NewBookingService(bookingDatabase, userService, hallService)
 	reviewService := service.NewReviewService(reviewDatabase, bookingService, userService)
 

@@ -30,6 +30,8 @@ type HallService interface {
 	Update(userID, id uint64, hallUpdate *request.HallUpdate) (*model.Hall, error)
 	Delete(userID, id uint64) error
 	GetAvailability(hallID uint64, from, to time.Time) ([]response.HallAvailability, error)
+	UploadImage(userID, hallID uint64, imagePath string) error
+	GetHallImages(hallID uint64) ([]string, error)
 }
 
 type BookingService interface {

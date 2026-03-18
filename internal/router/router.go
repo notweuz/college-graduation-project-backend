@@ -34,6 +34,7 @@ func (r *Router) Setup() {
 	r.setupAuthRoutes(api)
 	r.setupUserRoutes(api)
 	r.setupHallRoutes(api)
+	r.setupImageRoutes(api)
 	r.setupBookingRoutes(api)
 	r.setupReviewRoutes(api)
 	r.setupAdminHallRoutes(admin)
@@ -64,6 +65,12 @@ func (r *Router) setupHallRoutes(api fiber.Router) {
 	halls.Get("/:id/reviews", r.reviewHandler.GetByHallID)
 }
 
+func (r *Router) setupImageRoutes(api fiber.Router) {
+	images := api.Group("/images")
+
+	images.Get("/:filename", r.hallHandler.ServeImage)
+}
+
 func (r *Router) setupBookingRoutes(api fiber.Router) {
 	bookings := api.Group("/bookings", middleware.Protected())
 
@@ -80,6 +87,7 @@ func (r *Router) setupAdminHallRoutes(api fiber.Router) {
 	halls.Post("/", r.hallHandler.Create)
 	halls.Patch("/:id", r.hallHandler.Update)
 	halls.Delete("/:id", r.hallHandler.Delete)
+	halls.Post("/:id/images", r.hallHandler.UploadImage)
 }
 
 func (r *Router) setupAdminBookingRoutes(api fiber.Router) {

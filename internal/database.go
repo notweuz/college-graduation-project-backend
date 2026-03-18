@@ -25,6 +25,7 @@ func SetupDatabase() error {
 	err = db.AutoMigrate(
 		&model.User{},
 		&model.Hall{},
+		&model.HallImage{},
 		&model.Booking{},
 		&model.Review{},
 	)

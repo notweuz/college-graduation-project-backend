@@ -34,6 +34,12 @@ type ReviewDatabase interface {
 	Delete(id uint64) error
 }
 
+type HallImageDatabase interface {
+	Create(hallImage *model.HallImage) error
+	FindByHallID(hallID uint64) ([]model.HallImage, error)
+	Delete(id uint64) error
+}
+
 type BookingDatabase interface {
 	Create(booking *model.Booking) error
 	FindByID(id uint64) (*model.Booking, error)
