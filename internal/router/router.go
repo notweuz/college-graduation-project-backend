@@ -64,6 +64,7 @@ func (r *Router) setupBookingRoutes(api fiber.Router) {
 	bookings.Post("/", r.bookingHandler.Create)
 	bookings.Get("/my", r.bookingHandler.GetAllFromUser)
 	bookings.Get("/:id", r.bookingHandler.GetByID)
+	bookings.Delete("/:id", r.bookingHandler.DeleteByAuthor)
 }
 
 func (r *Router) setupAdminHallRoutes(api fiber.Router) {

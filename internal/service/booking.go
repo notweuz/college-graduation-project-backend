@@ -104,3 +104,16 @@ func (b bookingService) FindByID(userID, id uint64) (*model.Booking, error) {
 
 	return booking, nil
 }
+
+func (b bookingService) DeleteByAuthor(userID, id uint64) error {
+	_, err := b.userService.FindByID(userID)
+	if err != nil {
+		return err
+	}
+	_, err = b.FindByID(userID, id)
+	err = b.bookingDatabase.Delete(id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
