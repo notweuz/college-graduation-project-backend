@@ -3,7 +3,6 @@ package service
 import (
 	"college-graduation-project-backend/internal/database"
 	"college-graduation-project-backend/internal/errs"
-	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
 	"college-graduation-project-backend/internal/model/request"
@@ -11,7 +10,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -26,17 +24,13 @@ func NewHallService(database database.HallDatabase, bookingDatabase database.Boo
 	return &hallService{database: database, bookingDatabase: bookingDatabase, userService: userService}
 }
 
-func (s *hallService) Create(ctx fiber.Ctx, hallCreate *request.HallCreate) (*model.Hall, error) {
-	userId, err := middleware.GetCurrentUserID(ctx)
-	if err != nil {
-		return nil, err
-	}
-	user, err := s.userService.FindByID(userId)
+func (s *hallService) Create(userID uint64, hallCreate *request.HallCreate) (*model.Hall, error) {
+	user, err := s.userService.FindByID(userID)
 	if err != nil {
 		return nil, err
 	}
 	if user.Role != enum.RoleAdmin {
-		log.Warn().Uint64("id", userId).Msg("User is not admin")
+		log.Warn().Uint64("id", userID).Msg("User is not admin")
 		return nil, errs.Forbidden("Forbidden", "user is not admin")
 	}
 
@@ -87,18 +81,13 @@ func (s *hallService) FindAllActive() ([]model.Hall, error) {
 	return halls, nil
 }
 
-func (s *hallService) Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*model.Hall, error) {
-	id := fiber.Params[uint64](ctx, "id")
-	userId, err := middleware.GetCurrentUserID(ctx)
-	if err != nil {
-		return nil, err
-	}
-	user, err := s.userService.FindByID(userId)
+func (s *hallService) Update(userID, id uint64, hallUpdate *request.HallUpdate) (*model.Hall, error) {
+	user, err := s.userService.FindByID(userID)
 	if err != nil {
 		return nil, err
 	}
 	if user.Role != enum.RoleAdmin {
-		log.Warn().Uint64("id", userId).Msg("User is not admin")
+		log.Warn().Uint64("id", userID).Msg("User is not admin")
 		return nil, errs.Forbidden("Forbidden", "user is not admin")
 	}
 	hall, err := s.FindByID(id)
@@ -129,17 +118,13 @@ func (s *hallService) Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*mo
 	return hall, nil
 }
 
-func (s *hallService) Delete(ctx fiber.Ctx, id uint64) error {
-	userId, err := middleware.GetCurrentUserID(ctx)
-	if err != nil {
-		return err
-	}
-	user, err := s.userService.FindByID(userId)
+func (s *hallService) Delete(userID, id uint64) error {
+	user, err := s.userService.FindByID(userID)
 	if err != nil {
 		return err
 	}
 	if user.Role != enum.RoleAdmin {
-		log.Warn().Uint64("id", userId).Msg("User is not admin")
+		log.Warn().Uint64("id", userID).Msg("User is not admin")
 		return errs.Forbidden("Forbidden", "user is not admin")
 	}
 	err = s.database.Delete(id)

@@ -3,12 +3,10 @@ package service
 import (
 	"college-graduation-project-backend/internal/database"
 	"college-graduation-project-backend/internal/errs"
-	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/request"
 	"errors"
 
-	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -98,12 +96,8 @@ func (u *userService) FindByEmail(email string) (*model.User, error) {
 	return user, nil
 }
 
-func (u *userService) UpdateProfile(ctx fiber.Ctx, updateProfile request.UpdateProfile) (*model.User, error) {
-	userId, err := middleware.GetCurrentUserID(ctx)
-	if err != nil {
-		return nil, err
-	}
-	user, err := u.FindByID(userId)
+func (u *userService) UpdateProfile(userID uint64, updateProfile request.UpdateProfile) (*model.User, error) {
+	user, err := u.FindByID(userID)
 	if err != nil {
 		return nil, err
 	}

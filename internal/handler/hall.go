@@ -2,6 +2,7 @@ package handler
 
 import (
 	"college-graduation-project-backend/internal/errs"
+	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model/request"
 	"college-graduation-project-backend/internal/model/response"
 	"college-graduation-project-backend/internal/service"
@@ -59,7 +60,11 @@ func (h *HallHandler) Create(c fiber.Ctx) error {
 	if err := validation.Validate(&hallCreate); err != nil {
 		return err
 	}
-	hall, err := h.hallService.Create(c, &hallCreate)
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+	hall, err := h.hallService.Create(userID, &hallCreate)
 	if err != nil {
 		return err
 	}
@@ -75,7 +80,12 @@ func (h *HallHandler) Update(c fiber.Ctx) error {
 	if err := validation.Validate(&hallUpdate); err != nil {
 		return err
 	}
-	hall, err := h.hallService.Update(c, &hallUpdate)
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+	id := fiber.Params[uint64](c, "id")
+	hall, err := h.hallService.Update(userID, id, &hallUpdate)
 	if err != nil {
 		return err
 	}
@@ -85,7 +95,11 @@ func (h *HallHandler) Update(c fiber.Ctx) error {
 
 func (h *HallHandler) Delete(c fiber.Ctx) error {
 	id := fiber.Params[uint64](c, "id")
-	err := h.hallService.Delete(c, id)
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+	err = h.hallService.Delete(userID, id)
 	if err != nil {
 		return err
 	}

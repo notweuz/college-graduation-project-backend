@@ -37,7 +37,11 @@ func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
 	if err := c.Bind().Body(&updateProfile); err != nil {
 		return err
 	}
-	user, err := h.userService.UpdateProfile(c, updateProfile)
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+	user, err := h.userService.UpdateProfile(userID, updateProfile)
 	if err != nil {
 		return err
 	}

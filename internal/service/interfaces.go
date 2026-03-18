@@ -5,8 +5,6 @@ import (
 	"college-graduation-project-backend/internal/model/request"
 	"college-graduation-project-backend/internal/model/response"
 	"time"
-
-	"github.com/gofiber/fiber/v3"
 )
 
 type UserService interface {
@@ -16,7 +14,7 @@ type UserService interface {
 	Update(user *model.User) error
 	FindByEmail(email string) (*model.User, error)
 	Delete(id uint64) error
-	UpdateProfile(ctx fiber.Ctx, updateProfile request.UpdateProfile) (*model.User, error)
+	UpdateProfile(userID uint64, updateProfile request.UpdateProfile) (*model.User, error)
 }
 
 type AuthService interface {
@@ -25,12 +23,12 @@ type AuthService interface {
 }
 
 type HallService interface {
-	Create(ctx fiber.Ctx, hallCreate *request.HallCreate) (*model.Hall, error)
+	Create(userID uint64, hallCreate *request.HallCreate) (*model.Hall, error)
 	FindByID(id uint64) (*model.Hall, error)
 	FindAll() ([]model.Hall, error)
 	FindAllActive() ([]model.Hall, error)
-	Update(ctx fiber.Ctx, hallUpdate *request.HallUpdate) (*model.Hall, error)
-	Delete(ctx fiber.Ctx, id uint64) error
+	Update(userID, id uint64, hallUpdate *request.HallUpdate) (*model.Hall, error)
+	Delete(userID, id uint64) error
 	GetAvailability(hallID uint64, from, to time.Time) ([]response.HallAvailability, error)
 }
 
