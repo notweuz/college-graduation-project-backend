@@ -10,6 +10,11 @@ type ReviewShort struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ReviewListResponse struct {
+	Items []ReviewShort `json:"items"`
+	Total int           `json:"total"`
+}
+
 func NewReviewShort(id uint64, user UserShort, rating uint8, comment string, createdAt time.Time) *ReviewShort {
 	return &ReviewShort{
 		ID:        id,
@@ -17,5 +22,12 @@ func NewReviewShort(id uint64, user UserShort, rating uint8, comment string, cre
 		Rating:    rating,
 		Comment:   comment,
 		CreatedAt: createdAt,
+	}
+}
+
+func NewReviewListResponse(reviews []ReviewShort) *ReviewListResponse {
+	return &ReviewListResponse{
+		Items: reviews,
+		Total: len(reviews),
 	}
 }

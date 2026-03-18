@@ -34,6 +34,40 @@ func (d *reviewDatabase) FindAll() ([]model.Review, error) {
 	return reviews, nil
 }
 
+func (d *reviewDatabase) FindByHallID(hallID uint64) ([]model.Review, error) {
+	var reviews []model.Review
+	if err := d.db.Preload("User").Preload("Booking.Hall").Joins("JOIN bookings ON bookings.id = reviews.booking_id").Where("bookings.hall_id = ?", hallID).Find(&reviews).Error; err != nil {
+		return nil, err
+	}
+	return reviews, nil
+}
+
+func (d *reviewDatabase) FindByUserIDAndBookingID(userID, bookingID uint64) (*model.Review, error) {
+	var review model.Review
+	if err := d.db.Where("user_id = ? AND booking_id = ?", userID, bookingID).First(&review).Error; err != nil {
+		return nil, err
+	}
+	return &review, nil
+}
+
+func (d *reviewDatabase) FindAllWithFilters(hallID, minRating *uint64) ([]model.Review, error) {
+	var reviews []model.Review
+	query := d.db.Preload("User").Preload("Booking.Hall").Joins("JOIN bookings ON bookings.id = reviews.booking_id")
+
+	if hallID != nil {
+		query = query.Where("bookings.hall_id = ?", *hallID)
+	}
+
+	if minRating != nil {
+		query = query.Where("reviews.rating >= ?", *minRating)
+	}
+
+	if err := query.Find(&reviews).Error; err != nil {
+		return nil, err
+	}
+	return reviews, nil
+}
+
 func (d *reviewDatabase) Update(review *model.Review) error {
 	return d.db.Save(review).Error
 }

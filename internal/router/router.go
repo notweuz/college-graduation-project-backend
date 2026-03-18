@@ -35,8 +35,10 @@ func (r *Router) Setup() {
 	r.setupUserRoutes(api)
 	r.setupHallRoutes(api)
 	r.setupBookingRoutes(api)
+	r.setupReviewRoutes(api)
 	r.setupAdminHallRoutes(admin)
 	r.setupAdminBookingRoutes(admin)
+	r.setupAdminReviewRoutes(admin)
 }
 
 func (r *Router) setupAuthRoutes(api fiber.Router) {
@@ -59,6 +61,7 @@ func (r *Router) setupHallRoutes(api fiber.Router) {
 	halls.Get("/", r.hallHandler.GetAllHalls)
 	halls.Get("/:id", r.hallHandler.GetHallById)
 	halls.Get("/:id/availability", r.hallHandler.GetHallAvailability)
+	halls.Get("/:id/reviews", r.reviewHandler.GetByHallID)
 }
 
 func (r *Router) setupBookingRoutes(api fiber.Router) {
@@ -85,4 +88,17 @@ func (r *Router) setupAdminBookingRoutes(api fiber.Router) {
 	bookings.Get("/", r.bookingHandler.GetAll)
 	bookings.Patch("/:id", r.bookingHandler.Update)
 	bookings.Get("/:id", r.bookingHandler.GetByID)
+}
+
+func (r *Router) setupReviewRoutes(api fiber.Router) {
+	reviews := api.Group("/reviews", middleware.Protected())
+
+	reviews.Patch("/:id", r.reviewHandler.Update)
+}
+
+func (r *Router) setupAdminReviewRoutes(api fiber.Router) {
+	reviews := api.Group("/reviews", middleware.Protected())
+
+	reviews.Get("/", r.reviewHandler.GetAllAdmin)
+	reviews.Delete("/:id", r.reviewHandler.DeleteAdmin)
 }
