@@ -28,3 +28,6 @@ go.work.sum
 # ides and code editors
 .idea
 .vscode
+
+# project misc
+uploads
