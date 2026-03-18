@@ -22,7 +22,7 @@ func NewBookingService(bookingDatabase database.BookingDatabase, userService Use
 	}
 }
 
-func (b bookingService) Create(userID uint64, req *request.BookingCreate) (*model.Booking, error) {
+func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*model.Booking, error) {
 	user, err := b.userService.FindByID(userID)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (b bookingService) Create(userID uint64, req *request.BookingCreate) (*mode
 	return booking, nil
 }
 
-func (b bookingService) FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error) {
+func (b *bookingService) FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error) {
 	_, err := b.userService.FindByID(userID)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (b bookingService) FindAllFromUser(userID uint64, from, to *time.Time) ([]m
 	return bookings, nil
 }
 
-func (b bookingService) FindByID(userID, id uint64) (*model.Booking, error) {
+func (b *bookingService) FindByID(userID, id uint64) (*model.Booking, error) {
 	user, err := b.userService.FindByID(userID)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (b bookingService) FindByID(userID, id uint64) (*model.Booking, error) {
 	return booking, nil
 }
 
-func (b bookingService) DeleteByAuthor(userID, id uint64) error {
+func (b *bookingService) DeleteByAuthor(userID, id uint64) error {
 	_, err := b.userService.FindByID(userID)
 	if err != nil {
 		return err
