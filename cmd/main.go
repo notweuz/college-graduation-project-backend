@@ -30,18 +30,20 @@ func main() {
 
 	userDatabase := database.NewUserDatabase(internal.Database)
 	hallDatabase := database.NewHallDatabase(internal.Database)
-	//reviewDatabase := database.NewReviewDatabase(internal.Database)
+	reviewDatabase := database.NewReviewDatabase(internal.Database)
 	bookingDatabase := database.NewBookingDatabase(internal.Database)
 
 	userService := service.NewUserService(userDatabase)
 	authService := service.NewAuthService(userService)
 	hallService := service.NewHallService(hallDatabase, bookingDatabase, userService)
 	bookingService := service.NewBookingService(bookingDatabase, userService, hallService)
+	reviewService := service.NewReviewService(reviewDatabase, bookingService, userService)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	hallHandler := handler.NewHallHandler(hallService)
 	bookingHandler := handler.NewBookingHandler(bookingService)
+	reviewHandler := handler.NewReviewHandler(reviewService)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: handler.ErrorHandler,
@@ -50,7 +52,7 @@ func main() {
 	app.Use(cors.New())
 
 	log.Info().Msg("Loading routers")
-	r := router.NewRouter(app, authHandler, userHandler, hallHandler, bookingHandler)
+	r := router.NewRouter(app, authHandler, userHandler, hallHandler, bookingHandler, reviewHandler)
 	r.Setup()
 
 	log.Info().Int("port", config.Cfg.AppPort).Msg("Starting server")

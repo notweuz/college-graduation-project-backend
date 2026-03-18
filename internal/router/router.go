@@ -13,15 +13,17 @@ type Router struct {
 	userHandler    *handler.UserHandler
 	hallHandler    *handler.HallHandler
 	bookingHandler *handler.BookingHandler
+	reviewHandler  *handler.ReviewHandler
 }
 
-func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler, bookingHandler *handler.BookingHandler) *Router {
+func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler, bookingHandler *handler.BookingHandler, reviewHandler *handler.ReviewHandler) *Router {
 	return &Router{
 		app:            app,
 		authHandler:    authHandler,
 		userHandler:    userHandler,
 		hallHandler:    hallHandler,
 		bookingHandler: bookingHandler,
+		reviewHandler:  reviewHandler,
 	}
 }
 
@@ -65,6 +67,7 @@ func (r *Router) setupBookingRoutes(api fiber.Router) {
 	bookings.Post("/", r.bookingHandler.Create)
 	bookings.Get("/my", r.bookingHandler.GetAllFromUser)
 	bookings.Get("/:id", r.bookingHandler.GetByID)
+	bookings.Post("/:id/review", r.reviewHandler.Create)
 	bookings.Delete("/:id", r.bookingHandler.DeleteByAuthor)
 }
 

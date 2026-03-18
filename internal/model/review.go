@@ -12,3 +12,15 @@ type Review struct {
 	Comment   string
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
+
+func NewReview(id uint64, booking Booking, user User, rating uint8, comment string) *Review {
+	return &Review{
+		ID:        id,
+		Booking:   booking,
+		BookingID: booking.ID,
+		User:      user,
+		UserID:    user.ID,
+		Rating:    rating,
+		Comment:   comment,
+	}
+}

@@ -20,7 +20,7 @@ func (d *reviewDatabase) Create(review *model.Review) error {
 
 func (d *reviewDatabase) FindByID(id uint64) (*model.Review, error) {
 	var review model.Review
-	if err := d.db.First(&review, id).Error; err != nil {
+	if err := d.db.Preload("Booking").Preload("User").First(&review, id).Error; err != nil {
 		return nil, err
 	}
 	return &review, nil

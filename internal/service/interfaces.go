@@ -40,3 +40,7 @@ type BookingService interface {
 	FindAll(userID uint64, hallID, bookingUserID *uint64, from, to *time.Time) ([]model.Booking, error)
 	Update(userID uint64, id uint64, req *request.BookingUpdate) (*model.Booking, error)
 }
+
+type ReviewService interface {
+	Create(userID, bookingID uint64, req *request.ReviewCreate) (*model.Review, error)
+}
