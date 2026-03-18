@@ -24,7 +24,7 @@ func NewReviewService(Database database.ReviewDatabase, bookingService BookingSe
 	}
 }
 
-func (r reviewService) Create(userID, bookingID uint64, req *request.ReviewCreate) (*model.Review, error) {
+func (r *reviewService) Create(userID, bookingID uint64, req *request.ReviewCreate) (*model.Review, error) {
 	user, err := r.userService.FindByID(userID)
 	if err != nil {
 		return nil, err
@@ -53,15 +53,15 @@ func (r reviewService) Create(userID, bookingID uint64, req *request.ReviewCreat
 	return review, nil
 }
 
-func (r reviewService) GetByHallID(hallID uint64) ([]model.Review, error) {
+func (r *reviewService) GetByHallID(hallID uint64) ([]model.Review, error) {
 	return r.database.FindByHallID(hallID)
 }
 
-func (r reviewService) GetAllWithFilters(hallID, minRating *uint64) ([]model.Review, error) {
+func (r *reviewService) GetAllWithFilters(hallID, minRating *uint64) ([]model.Review, error) {
 	return r.database.FindAllWithFilters(hallID, minRating)
 }
 
-func (r reviewService) Update(userID, reviewID uint64, req *request.ReviewCreate) (*model.Review, error) {
+func (r *reviewService) Update(userID, reviewID uint64, req *request.ReviewCreate) (*model.Review, error) {
 	review, err := r.database.FindByID(reviewID)
 	if err != nil {
 		return nil, errs.NotFound("Review not found", "Review does not exist")
@@ -82,6 +82,6 @@ func (r reviewService) Update(userID, reviewID uint64, req *request.ReviewCreate
 	return review, nil
 }
 
-func (r reviewService) Delete(id uint64) error {
+func (r *reviewService) Delete(id uint64) error {
 	return r.database.Delete(id)
 }
