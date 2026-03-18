@@ -34,10 +34,10 @@ type ReviewDatabase interface {
 type BookingDatabase interface {
 	Create(booking *model.Booking) error
 	FindByID(id uint64) (*model.Booking, error)
-	FindAll() ([]model.Booking, error)
 	FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error)
 	Update(booking *model.Booking) error
 	Delete(id uint64) error
 	CheckConflict(hallID uint64, startDateTime, endDateTime time.Time) (bool, error)
 	FindBookingsForHall(hallID uint64, from, to time.Time) ([]model.Booking, error)
+	FindAll(hallID, bookingUserID *uint64, from, to *time.Time) ([]model.Booking, error)
 }

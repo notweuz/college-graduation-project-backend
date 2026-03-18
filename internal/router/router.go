@@ -34,6 +34,7 @@ func (r *Router) Setup() {
 	r.setupHallRoutes(api)
 	r.setupBookingRoutes(api)
 	r.setupAdminHallRoutes(admin)
+	r.setupAdminBookingRoutes(admin)
 }
 
 func (r *Router) setupAuthRoutes(api fiber.Router) {
@@ -73,4 +74,10 @@ func (r *Router) setupAdminHallRoutes(api fiber.Router) {
 	halls.Post("/", r.hallHandler.Create)
 	halls.Patch("/:id", r.hallHandler.Update)
 	halls.Delete("/:id", r.hallHandler.Delete)
+}
+
+func (r *Router) setupAdminBookingRoutes(api fiber.Router) {
+	bookings := api.Group("/bookings", middleware.Protected())
+
+	bookings.Get("/", r.bookingHandler.GetAll)
 }

@@ -39,4 +39,5 @@ type BookingService interface {
 	FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error)
 	FindByID(userID, id uint64) (*model.Booking, error)
 	DeleteByAuthor(userID, id uint64) error
+	FindAll(userID uint64, hallID, bookingUserID *uint64, from, to *time.Time) ([]model.Booking, error)
 }

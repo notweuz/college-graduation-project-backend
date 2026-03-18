@@ -27,14 +27,6 @@ func (d *bookingDatabase) FindByID(id uint64) (*model.Booking, error) {
 	return &booking, nil
 }
 
-func (d *bookingDatabase) FindAll() ([]model.Booking, error) {
-	var bookings []model.Booking
-	if err := d.db.Find(&bookings).Error; err != nil {
-		return nil, err
-	}
-	return bookings, nil
-}
-
 func (d *bookingDatabase) FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error) {
 	var bookings []model.Booking
 	query := d.db.Where("user_id = ?", userID)
@@ -91,5 +83,27 @@ func (d *bookingDatabase) FindBookingsForHall(hallID uint64, from, to time.Time)
 		return nil, err
 	}
 
+	return bookings, nil
+}
+
+func (d *bookingDatabase) FindAll(hallID, bookingUserID *uint64, from, to *time.Time) ([]model.Booking, error) {
+	query := d.db
+	if hallID != nil {
+		query = query.Where("hall_id = ?", *hallID)
+	}
+	if bookingUserID != nil {
+		query = query.Where("user_id = ?", *bookingUserID)
+	}
+	if from != nil {
+		query = query.Where("start_date_time >= ?", *from)
+	}
+	if to != nil {
+		query = query.Where("end_date_time <= ?", *to)
+	}
+	var bookings []model.Booking
+	err := query.Preload("Hall").Preload("User").Order("start_date_time").Find(&bookings).Error
+	if err != nil {
+		return nil, err
+	}
 	return bookings, nil
 }

@@ -4,6 +4,7 @@ import (
 	"college-graduation-project-backend/internal/database"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model"
+	"college-graduation-project-backend/internal/model/enum"
 	"college-graduation-project-backend/internal/model/request"
 	"time"
 )
@@ -122,4 +123,19 @@ func (b *bookingService) DeleteByAuthor(userID, id uint64) error {
 		return err
 	}
 	return nil
+}
+
+func (b *bookingService) FindAll(userID uint64, hallID, bookingUserID *uint64, from, to *time.Time) ([]model.Booking, error) {
+	user, err := b.userService.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if user.Role != enum.RoleAdmin {
+		return nil, errs.Forbidden("Cannot get all bookings", "You do not have permission to get all bookings")
+	}
+	bookings, err := b.bookingDatabase.FindAll(hallID, bookingUserID, from, to)
+	if err != nil {
+		return nil, errs.InternalServerError("Cannot get all bookings", err.Error())
+	}
+	return bookings, nil
 }
