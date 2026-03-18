@@ -14,9 +14,10 @@ type Router struct {
 	hallHandler    *handler.HallHandler
 	bookingHandler *handler.BookingHandler
 	reviewHandler  *handler.ReviewHandler
+	reportHandler  *handler.ReportHandler
 }
 
-func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler, bookingHandler *handler.BookingHandler, reviewHandler *handler.ReviewHandler) *Router {
+func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler, bookingHandler *handler.BookingHandler, reviewHandler *handler.ReviewHandler, reportHandler *handler.ReportHandler) *Router {
 	return &Router{
 		app:            app,
 		authHandler:    authHandler,
@@ -24,6 +25,7 @@ func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *ha
 		hallHandler:    hallHandler,
 		bookingHandler: bookingHandler,
 		reviewHandler:  reviewHandler,
+		reportHandler:  reportHandler,
 	}
 }
 
@@ -40,6 +42,7 @@ func (r *Router) Setup() {
 	r.setupAdminHallRoutes(admin)
 	r.setupAdminBookingRoutes(admin)
 	r.setupAdminReviewRoutes(admin)
+	r.setupAdminReportRoutes(admin)
 }
 
 func (r *Router) setupAuthRoutes(api fiber.Router) {
@@ -109,4 +112,11 @@ func (r *Router) setupAdminReviewRoutes(api fiber.Router) {
 
 	reviews.Get("/", r.reviewHandler.GetAllAdmin)
 	reviews.Delete("/:id", r.reviewHandler.DeleteAdmin)
+}
+
+func (r *Router) setupAdminReportRoutes(api fiber.Router) {
+	reports := api.Group("/reports", middleware.Protected())
+
+	reports.Get("/sales", r.reportHandler.GetSalesReport)
+	reports.Get("/sales/pdf", r.reportHandler.GetSalesReportPDF)
 }

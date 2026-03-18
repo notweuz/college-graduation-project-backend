@@ -50,3 +50,8 @@ type ReviewService interface {
 	Update(userID, reviewID uint64, req *request.ReviewCreate) (*model.Review, error)
 	Delete(id uint64) error
 }
+
+type ReportService interface {
+	GetSalesReport(userID uint64, from, to time.Time, hallID *uint64, groupBy string, metrics []string) (*response.SalesReport, error)
+	GetSalesReportPDF(userID uint64, from, to time.Time, hallID *uint64, groupBy string, metrics []string) ([]byte, error)
+}
