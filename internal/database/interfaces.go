@@ -53,5 +53,6 @@ type BookingDatabase interface {
 
 type ReportDatabase interface {
 	FindSalesBookings(from, to time.Time, hallID *uint64) ([]model.Booking, error)
+	FindReportBookings(from, to time.Time, hallID *uint64) ([]model.Booking, error)
 	CountHalls(hallID *uint64) (uint64, error)
 }

@@ -54,4 +54,10 @@ type ReviewService interface {
 type ReportService interface {
 	GetSalesReport(userID uint64, from, to time.Time, hallID *uint64, groupBy string, metrics []string) (*response.SalesReport, error)
 	GetSalesReportPDF(userID uint64, from, to time.Time, hallID *uint64, groupBy string, metrics []string) ([]byte, error)
+	GetHallsLoadReport(userID uint64, from, to time.Time, hallID *uint64) (*response.HallsLoadReport, error)
+	GetClientsReport(userID uint64, from, to time.Time, hallID *uint64, limit uint64) (*response.ClientsReport, error)
+	GetBookingsDynamicsReport(userID uint64, from, to time.Time, hallID *uint64, groupBy string) (*response.BookingsDynamicsReport, error)
+	GetHallsLoadReportPDF(userID uint64, from, to time.Time, hallID *uint64) ([]byte, error)
+	GetClientsReportPDF(userID uint64, from, to time.Time, hallID *uint64, limit uint64) ([]byte, error)
+	GetBookingsDynamicsReportPDF(userID uint64, from, to time.Time, hallID *uint64, groupBy string) ([]byte, error)
 }

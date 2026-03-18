@@ -32,6 +32,24 @@ func (d *reportDatabase) FindSalesBookings(from, to time.Time, hallID *uint64) (
 	return bookings, nil
 }
 
+func (d *reportDatabase) FindReportBookings(from, to time.Time, hallID *uint64) ([]model.Booking, error) {
+	query := d.db.Model(&model.Booking{}).
+		Preload("Hall").
+		Preload("User").
+		Where("start_date_time < ? AND end_date_time > ?", to, from)
+
+	if hallID != nil {
+		query = query.Where("hall_id = ?", *hallID)
+	}
+
+	var bookings []model.Booking
+	if err := query.Order("start_date_time").Find(&bookings).Error; err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
+}
+
 func (d *reportDatabase) CountHalls(hallID *uint64) (uint64, error) {
 	query := d.db.Model(&model.Hall{})
 	if hallID != nil {

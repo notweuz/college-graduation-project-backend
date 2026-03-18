@@ -119,4 +119,10 @@ func (r *Router) setupAdminReportRoutes(api fiber.Router) {
 
 	reports.Get("/sales", r.reportHandler.GetSalesReport)
 	reports.Get("/sales/pdf", r.reportHandler.GetSalesReportPDF)
+	reports.Get("/halls-load", r.reportHandler.GetHallsLoadReport)
+	reports.Get("/halls-load/pdf", r.reportHandler.GetHallsLoadReportPDF)
+	reports.Get("/clients", r.reportHandler.GetClientsReport)
+	reports.Get("/clients/pdf", r.reportHandler.GetClientsReportPDF)
+	reports.Get("/bookings-dynamics", r.reportHandler.GetBookingsDynamicsReport)
+	reports.Get("/bookings-dynamics/pdf", r.reportHandler.GetBookingsDynamicsReportPDF)
 }
