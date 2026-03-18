@@ -110,7 +110,13 @@ func (b *bookingService) DeleteByAuthor(userID, id uint64) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.FindByID(userID, id)
+	booking, err := b.FindByID(userID, id)
+	if err != nil {
+		return err
+	}
+	if booking.StartDateTime.Before(time.Now()) {
+		return errs.Forbidden("Cannot delete booking", "Cannot delete booking that was already started/done")
+	}
 	err = b.bookingDatabase.Delete(id)
 	if err != nil {
 		return err
