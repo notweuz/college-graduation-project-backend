@@ -1,3 +1,14 @@
+// @title College Graduation Project Backend API
+// @version 1.0
+// @description API для управления залами, бронированиями, отзывами и отчетами.
+// @BasePath /
+// @schemes http https
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT токен в формате: Bearer <token>
+//
+//go:generate go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g main.go -d .,../internal -o ../docs --parseDependency --parseInternal
 package main
 
 import (

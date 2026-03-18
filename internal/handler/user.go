@@ -17,6 +17,17 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
+// GetProfile godoc
+// @Summary Get current user profile
+// @Description Возвращает профиль текущего авторизованного пользователя.
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.UserShort
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/users/me [get]
 func (h *UserHandler) GetProfile(c fiber.Ctx) error {
 	userId, err := middleware.GetCurrentUserID(c)
 	if err != nil {
@@ -32,6 +43,19 @@ func (h *UserHandler) GetProfile(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(userShort)
 }
 
+// UpdateProfile godoc
+// @Summary Update current user profile
+// @Description Обновляет профиль текущего авторизованного пользователя.
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param payload body request.UpdateProfile true "Поля профиля для обновления"
+// @Success 200 {object} response.UserShort
+// @Failure 400 {object} BadRequestErrorResponse
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/users/me [patch]
 func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
 	var updateProfile request.UpdateProfile
 	if err := c.Bind().Body(&updateProfile); err != nil {

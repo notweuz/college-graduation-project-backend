@@ -21,6 +21,23 @@ func NewReviewHandler(reviewService service.ReviewService) *ReviewHandler {
 	}
 }
 
+// Create godoc
+// @Summary Create review for booking
+// @Description Создает отзыв к бронированию от текущего пользователя.
+// @Tags reviews
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID бронирования"
+// @Param payload body request.ReviewCreate true "Данные отзыва"
+// @Success 200 {object} response.ReviewShort
+// @Failure 400 {object} BadRequestErrorResponse
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 403 {object} ForbiddenErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 409 {object} ConflictErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/bookings/{id}/review [post]
 func (h *ReviewHandler) Create(c fiber.Ctx) error {
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
@@ -43,6 +60,22 @@ func (h *ReviewHandler) Create(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(reviewFull)
 }
 
+// Update godoc
+// @Summary Update review
+// @Description Обновляет отзыв текущего пользователя.
+// @Tags reviews
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID отзыва"
+// @Param payload body request.ReviewCreate true "Данные отзыва"
+// @Success 200 {object} response.ReviewShort
+// @Failure 400 {object} BadRequestErrorResponse
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 403 {object} ForbiddenErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/reviews/{id} [patch]
 func (h *ReviewHandler) Update(c fiber.Ctx) error {
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
@@ -65,6 +98,16 @@ func (h *ReviewHandler) Update(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(reviewFull)
 }
 
+// GetByHallID godoc
+// @Summary Get reviews by hall ID
+// @Description Возвращает отзывы для конкретного зала.
+// @Tags reviews
+// @Produce json
+// @Param id path int true "ID зала"
+// @Success 200 {array} response.ReviewShort
+// @Failure 400 {object} SimpleErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/halls/{id}/reviews [get]
 func (h *ReviewHandler) GetByHallID(c fiber.Ctx) error {
 	hallID := fiber.Params[uint64](c, "id")
 
@@ -87,6 +130,19 @@ func (h *ReviewHandler) GetByHallID(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(reviewShorts)
 }
 
+// GetAllAdmin godoc
+// @Summary List reviews (admin)
+// @Description Возвращает список отзывов с фильтрами (требуется авторизация администратора).
+// @Tags admin-reviews
+// @Produce json
+// @Security BearerAuth
+// @Param hall_id query int false "ID зала"
+// @Param min_rating query int false "Минимальный рейтинг"
+// @Success 200 {object} response.ReviewListResponse
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 403 {object} ForbiddenErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/admin/reviews/ [get]
 func (h *ReviewHandler) GetAllAdmin(c fiber.Ctx) error {
 	var hallID, minRating *uint64
 
@@ -118,6 +174,19 @@ func (h *ReviewHandler) GetAllAdmin(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
+// DeleteAdmin godoc
+// @Summary Delete review (admin)
+// @Description Удаляет отзыв по ID (требуется авторизация администратора).
+// @Tags admin-reviews
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID отзыва"
+// @Success 204 {string} string "No Content"
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 403 {object} ForbiddenErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/admin/reviews/{id} [delete]
 func (h *ReviewHandler) DeleteAdmin(c fiber.Ctx) error {
 	reviewID := fiber.Params[uint64](c, "id")
 	err := h.reviewService.Delete(reviewID)
