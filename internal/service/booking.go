@@ -99,7 +99,7 @@ func (b *bookingService) FindByID(userID, id uint64) (*model.Booking, error) {
 	if err != nil {
 		return nil, err
 	}
-	if booking.User.ID != user.ID {
+	if booking.User.ID != user.ID && user.Role != enum.RoleAdmin {
 		return nil, errs.Forbidden("Cannot find booking by ID", "This booking does not belong to you")
 	}
 
