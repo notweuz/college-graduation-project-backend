@@ -1,6 +1,7 @@
 package database
 
 import (
+	"college-graduation-project-backend/internal/config"
 	"college-graduation-project-backend/internal/model"
 	"time"
 
@@ -54,21 +55,46 @@ func (d *bookingDatabase) Delete(id uint64) error {
 }
 
 func (d *bookingDatabase) CheckConflict(hallID uint64, startDateTime, endDateTime time.Time) (bool, error) {
-	var count int64
-
+	var bookings []model.Booking
+	searchFrom := startDateTime.Add(-24 * time.Hour)
+	searchTo := endDateTime.Add(24 * time.Hour)
 	err := d.db.Model(&model.Booking{}).
 		Where("hall_id = ?", hallID).
-		Where("(start_date_time < ? AND end_date_time > ?) OR (start_date_time < ? AND end_date_time > ?) OR (start_date_time >= ? AND end_date_time <= ?)",
-			endDateTime, startDateTime,
-			startDateTime, endDateTime,
-			startDateTime, endDateTime).
-		Count(&count).Error
+		Where("start_date_time < ? AND end_date_time > ?", searchTo, searchFrom).
+		Find(&bookings).Error
 
 	if err != nil {
 		return false, err
 	}
 
-	return count > 0, nil
+	loc := config.AppLocation
+	if loc == nil {
+		loc = time.UTC
+	}
+
+	for _, booking := range bookings {
+		existingStart := startOfDayInLocation(booking.StartDateTime, loc)
+		existingEnd := startOfDayInLocation(booking.EndDateTime, loc)
+		if !isStartOfDayInLocation(booking.EndDateTime, loc) {
+			existingEnd = existingEnd.Add(24 * time.Hour)
+		}
+
+		if existingStart.Before(endDateTime) && existingEnd.After(startDateTime) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func startOfDayInLocation(t time.Time, loc *time.Location) time.Time {
+	localTime := t.In(loc)
+	return time.Date(localTime.Year(), localTime.Month(), localTime.Day(), 0, 0, 0, 0, loc)
+}
+
+func isStartOfDayInLocation(t time.Time, loc *time.Location) bool {
+	localTime := t.In(loc)
+	return localTime.Hour() == 0 && localTime.Minute() == 0 && localTime.Second() == 0 && localTime.Nanosecond() == 0
 }
 
 func (d *bookingDatabase) FindBookingsForHall(hallID uint64, from, to time.Time) ([]model.Booking, error) {

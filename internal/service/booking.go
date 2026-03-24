@@ -1,6 +1,7 @@
 package service
 
 import (
+	"college-graduation-project-backend/internal/config"
 	"college-graduation-project-backend/internal/database"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model"
@@ -87,20 +88,30 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 }
 
 func normalizeBookingRange(start, end time.Time) (time.Time, time.Time) {
-	normalizedStart := startOfDay(start)
-	normalizedEnd := startOfDay(end)
-	if !isStartOfDay(end) {
+	loc := bookingCalendarLocation()
+	normalizedStart := startOfDayInLocation(start, loc)
+	normalizedEnd := startOfDayInLocation(end, loc)
+	if !isStartOfDayInLocation(end, loc) {
 		normalizedEnd = normalizedEnd.Add(24 * time.Hour)
 	}
 	return normalizedStart, normalizedEnd
 }
 
-func startOfDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+func bookingCalendarLocation() *time.Location {
+	if config.AppLocation != nil {
+		return config.AppLocation
+	}
+	return time.UTC
 }
 
-func isStartOfDay(t time.Time) bool {
-	return t.Equal(startOfDay(t))
+func startOfDayInLocation(t time.Time, loc *time.Location) time.Time {
+	localTime := t.In(loc)
+	return time.Date(localTime.Year(), localTime.Month(), localTime.Day(), 0, 0, 0, 0, loc)
+}
+
+func isStartOfDayInLocation(t time.Time, loc *time.Location) bool {
+	localTime := t.In(loc)
+	return localTime.Hour() == 0 && localTime.Minute() == 0 && localTime.Second() == 0 && localTime.Nanosecond() == 0
 }
 
 func (b *bookingService) FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error) {
