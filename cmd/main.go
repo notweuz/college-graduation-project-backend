@@ -1,5 +1,5 @@
 // @title College Graduation Project Backend API
-// @version 1.0
+// @version 1.1
 // @description API для управления залами, бронированиями, отзывами и отчетами. Бекенд часть для диплома.
 // @BasePath /
 // @schemes http https

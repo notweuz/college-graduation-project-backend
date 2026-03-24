@@ -15,13 +15,13 @@ type SalesReport struct {
 }
 
 type SalesReportRow struct {
-	Bucket      string             `json:"bucket"`
-	HallID      *uint64            `json:"hall_id,omitempty"`
-	HallName    *string            `json:"hall_name,omitempty"`
-	DateFrom    string             `json:"date_from"`
-	DateTo      string             `json:"date_to"`
-	BookedHours float64            `json:"booked_hours"`
-	Metrics     SalesReportMetrics `json:"metrics"`
+	Bucket     string             `json:"bucket"`
+	HallID     *uint64            `json:"hall_id,omitempty"`
+	HallName   *string            `json:"hall_name,omitempty"`
+	DateFrom   string             `json:"date_from"`
+	DateTo     string             `json:"date_to"`
+	BookedDays float64            `json:"booked_days"`
+	Metrics    SalesReportMetrics `json:"metrics"`
 }
 
 type SalesReportFilters struct {
@@ -40,10 +40,10 @@ type SalesReportMetrics struct {
 }
 
 type SalesReportSummary struct {
-	RowsCount        uint64  `json:"rows_count"`
-	HallsCount       uint64  `json:"halls_count"`
-	TotalBookedHours float64 `json:"total_booked_hours"`
-	AvailableHours   float64 `json:"available_hours"`
+	RowsCount       uint64  `json:"rows_count"`
+	HallsCount      uint64  `json:"halls_count"`
+	TotalBookedDays float64 `json:"total_booked_days"`
+	AvailableDays   float64 `json:"available_days"`
 }
 
 type HallsLoadReport struct {
@@ -68,7 +68,7 @@ type HallsLoadRow struct {
 	HallName      string  `json:"hall_name"`
 	BookingsCount uint64  `json:"bookings_count"`
 	Revenue       float64 `json:"revenue"`
-	BookedHours   float64 `json:"booked_hours"`
+	BookedDays    float64 `json:"booked_days"`
 	AvgCheck      float64 `json:"avg_check"`
 	Occupancy     float64 `json:"occupancy"`
 }
@@ -77,7 +77,7 @@ type HallsLoadTotals struct {
 	HallsCount       uint64  `json:"halls_count"`
 	BookingsCount    uint64  `json:"bookings_count"`
 	Revenue          float64 `json:"revenue"`
-	BookedHours      float64 `json:"booked_hours"`
+	BookedDays       float64 `json:"booked_days"`
 	AvgCheck         float64 `json:"avg_check"`
 	AverageOccupancy float64 `json:"average_occupancy"`
 }
@@ -142,7 +142,7 @@ type BookingsDynamicsRow struct {
 	DateTo        string  `json:"date_to"`
 	BookingsCount uint64  `json:"bookings_count"`
 	Revenue       float64 `json:"revenue"`
-	BookedHours   float64 `json:"booked_hours"`
+	BookedDays    float64 `json:"booked_days"`
 	Occupancy     float64 `json:"occupancy"`
 }
 
@@ -150,7 +150,7 @@ type BookingsDynamicsTotals struct {
 	RowsCount        uint64  `json:"rows_count"`
 	BookingsCount    uint64  `json:"bookings_count"`
 	Revenue          float64 `json:"revenue"`
-	BookedHours      float64 `json:"booked_hours"`
+	BookedDays       float64 `json:"booked_days"`
 	AvgCheck         float64 `json:"avg_check"`
 	AverageOccupancy float64 `json:"average_occupancy"`
 }

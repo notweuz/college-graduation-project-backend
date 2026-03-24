@@ -3,25 +3,25 @@ package response
 import "time"
 
 type HallFull struct {
-	ID           uint64   `json:"id"`
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	PricePerHour float64  `json:"price_per_hour"`
-	IsActive     bool     `json:"is_active"`
-	Images       []string `json:"images"`
+	ID          uint64   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	PricePerDay float64  `json:"price_per_day"`
+	IsActive    bool     `json:"is_active"`
+	Images      []string `json:"images"`
 }
 
-func NewHallFull(id uint64, name, description string, pricePerHour float64, isActive bool, images []string) *HallFull {
+func NewHallFull(id uint64, name, description string, pricePerDay float64, isActive bool, images []string) *HallFull {
 	if images == nil {
 		images = []string{}
 	}
 	return &HallFull{
-		ID:           id,
-		Name:         name,
-		Description:  description,
-		PricePerHour: pricePerHour,
-		IsActive:     isActive,
-		Images:       images,
+		ID:          id,
+		Name:        name,
+		Description: description,
+		PricePerDay: pricePerDay,
+		IsActive:    isActive,
+		Images:      images,
 	}
 }
 

@@ -31,7 +31,7 @@ type salesAggregation struct {
 	bucketEnd     time.Time
 	hallID        *uint64
 	hallName      *string
-	bookedHours   float64
+	bookedDays    float64
 	revenue       float64
 	bookingsCount uint64
 }
@@ -41,7 +41,7 @@ type hallLoadAggregation struct {
 	hallName      string
 	bookingsCount uint64
 	revenue       float64
-	bookedHours   float64
+	bookedDays    float64
 }
 
 type clientAggregation struct {
@@ -58,7 +58,7 @@ type dynamicAggregation struct {
 	bucketEnd     time.Time
 	bookingsCount uint64
 	revenue       float64
-	bookedHours   float64
+	bookedDays    float64
 }
 
 func NewReportService(reportDatabase database.ReportDatabase, userService UserService) ReportService {
@@ -159,8 +159,8 @@ func (s *reportService) GetHallsLoadReport(userID uint64, from, to time.Time, ha
 		if !clampedStart.Before(clampedEnd) {
 			continue
 		}
-		durationHours := booking.EndDateTime.Sub(booking.StartDateTime).Hours()
-		if durationHours <= 0 {
+		durationDays := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
+		if durationDays <= 0 {
 			continue
 		}
 
@@ -173,30 +173,30 @@ func (s *reportService) GetHallsLoadReport(userID uint64, from, to time.Time, ha
 			aggregated[booking.HallID] = agg
 		}
 
-		overlapHours := clampedEnd.Sub(clampedStart).Hours()
+		overlapDays := clampedEnd.Sub(clampedStart).Hours() / 24
 		agg.bookingsCount++
-		agg.bookedHours += overlapHours
-		agg.revenue += booking.TotalPrice * (overlapHours / durationHours)
+		agg.bookedDays += overlapDays
+		agg.revenue += booking.TotalPrice * (overlapDays / durationDays)
 	}
 
 	rows := make([]response.HallsLoadRow, 0, len(aggregated))
 	var totalBookings uint64
 	var totalRevenue float64
-	var totalBookedHours float64
-	availablePerHall := to.Sub(from).Hours()
+	var totalBookedDays float64
+	availablePerHallDays := to.Sub(from).Hours() / 24
 	for _, agg := range aggregated {
 		totalBookings += agg.bookingsCount
 		totalRevenue += agg.revenue
-		totalBookedHours += agg.bookedHours
+		totalBookedDays += agg.bookedDays
 
 		row := response.HallsLoadRow{
 			HallID:        agg.hallID,
 			HallName:      agg.hallName,
 			BookingsCount: agg.bookingsCount,
 			Revenue:       round2(agg.revenue),
-			BookedHours:   round2(agg.bookedHours),
+			BookedDays:    round2(agg.bookedDays),
 			AvgCheck:      safeAvg(agg.revenue, agg.bookingsCount),
-			Occupancy:     safePercent(agg.bookedHours, availablePerHall),
+			Occupancy:     safePercent(agg.bookedDays, availablePerHallDays),
 		}
 		rows = append(rows, row)
 	}
@@ -211,9 +211,9 @@ func (s *reportService) GetHallsLoadReport(userID uint64, from, to time.Time, ha
 		HallsCount:       hallCount,
 		BookingsCount:    totalBookings,
 		Revenue:          round2(totalRevenue),
-		BookedHours:      round2(totalBookedHours),
+		BookedDays:       round2(totalBookedDays),
 		AvgCheck:         safeAvg(totalRevenue, totalBookings),
-		AverageOccupancy: safePercent(totalBookedHours, availablePerHall*float64(hallCount)),
+		AverageOccupancy: safePercent(totalBookedDays, availablePerHallDays*float64(hallCount)),
 	}
 
 	return &response.HallsLoadReport{
@@ -262,12 +262,12 @@ func (s *reportService) GetClientsReport(userID uint64, from, to time.Time, hall
 			continue
 		}
 
-		durationHours := booking.EndDateTime.Sub(booking.StartDateTime).Hours()
-		if durationHours <= 0 {
+		durationDays := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
+		if durationDays <= 0 {
 			continue
 		}
-		overlapHours := clampedEnd.Sub(clampedStart).Hours()
-		overlapRevenue := booking.TotalPrice * (overlapHours / durationHours)
+		overlapDays := clampedEnd.Sub(clampedStart).Hours() / 24
+		overlapRevenue := booking.TotalPrice * (overlapDays / durationDays)
 
 		agg, ok := aggregated[booking.UserID]
 		if !ok {
@@ -369,8 +369,8 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 		if !clampedStart.Before(clampedEnd) {
 			continue
 		}
-		durationHours := booking.EndDateTime.Sub(booking.StartDateTime).Hours()
-		if durationHours <= 0 {
+		durationDays := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
+		if durationDays <= 0 {
 			continue
 		}
 
@@ -378,7 +378,7 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 			bucketStart := truncateToBucket(segmentStart, groupBy)
 			bucketEnd := nextBucketStart(bucketStart, groupBy)
 			segmentEnd := minTime(clampedEnd, bucketEnd)
-			segmentHours := segmentEnd.Sub(segmentStart).Hours()
+			segmentDays := segmentEnd.Sub(segmentStart).Hours() / 24
 
 			key := bucketKey(bucketStart, groupBy)
 			agg, ok := aggregated[key]
@@ -390,8 +390,8 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 				aggregated[key] = agg
 			}
 			agg.bookingsCount++
-			agg.bookedHours += segmentHours
-			agg.revenue += booking.TotalPrice * (segmentHours / durationHours)
+			agg.bookedDays += segmentDays
+			agg.revenue += booking.TotalPrice * (segmentDays / durationDays)
 
 			segmentStart = segmentEnd
 		}
@@ -406,16 +406,16 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 	rows := make([]response.BookingsDynamicsRow, 0, len(keys))
 	var totalBookings uint64
 	var totalRevenue float64
-	var totalBookedHours float64
+	var totalBookedDays float64
 	var occupancySum float64
 	for _, key := range keys {
 		agg := aggregated[key]
-		availableHours := agg.bucketEnd.Sub(agg.bucketStart).Hours() * float64(hallCount)
-		occupancy := safePercent(agg.bookedHours, availableHours)
+		availableDays := (agg.bucketEnd.Sub(agg.bucketStart).Hours() / 24) * float64(hallCount)
+		occupancy := safePercent(agg.bookedDays, availableDays)
 		occupancySum += occupancy
 		totalBookings += agg.bookingsCount
 		totalRevenue += agg.revenue
-		totalBookedHours += agg.bookedHours
+		totalBookedDays += agg.bookedDays
 
 		rows = append(rows, response.BookingsDynamicsRow{
 			Bucket:        key,
@@ -423,7 +423,7 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 			DateTo:        agg.bucketEnd.Format(time.RFC3339),
 			BookingsCount: agg.bookingsCount,
 			Revenue:       round2(agg.revenue),
-			BookedHours:   round2(agg.bookedHours),
+			BookedDays:    round2(agg.bookedDays),
 			Occupancy:     occupancy,
 		})
 	}
@@ -451,7 +451,7 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 			RowsCount:        uint64(len(rows)),
 			BookingsCount:    totalBookings,
 			Revenue:          round2(totalRevenue),
-			BookedHours:      round2(totalBookedHours),
+			BookedDays:       round2(totalBookedDays),
 			AvgCheck:         safeAvg(totalRevenue, totalBookings),
 			AverageOccupancy: avgOccupancy,
 		},
@@ -463,14 +463,14 @@ func (s *reportService) GetHallsLoadReportPDF(userID uint64, from, to time.Time,
 	if err != nil {
 		return nil, err
 	}
-	headers := []string{"Зал", "Брон.", "Выручка", "Часы", "Ср. чек", "Загрузка"}
+	headers := []string{"Зал", "Брон.", "Выручка", "Дни", "Ср. чек", "Загрузка"}
 	rows := make([][]string, 0, len(report.Rows))
 	for _, row := range report.Rows {
 		rows = append(rows, []string{
 			row.HallName,
 			fmt.Sprintf("%d", row.BookingsCount),
 			fmt.Sprintf("%.2f", row.Revenue),
-			fmt.Sprintf("%.2f", row.BookedHours),
+			fmt.Sprintf("%.2f", row.BookedDays),
 			fmt.Sprintf("%.2f", row.AvgCheck),
 			fmt.Sprintf("%.2f%%", row.Occupancy),
 		})
@@ -486,7 +486,7 @@ func (s *reportService) GetHallsLoadReportPDF(userID uint64, from, to time.Time,
 			fmt.Sprintf("Выручка: %.2f", report.Totals.Revenue),
 		},
 		{
-			fmt.Sprintf("Занято часов: %.2f", report.Totals.BookedHours),
+			fmt.Sprintf("Занято дней: %.2f", report.Totals.BookedDays),
 			fmt.Sprintf("Средний чек: %.2f", report.Totals.AvgCheck),
 			fmt.Sprintf("Средняя загрузка: %.2f%%", report.Totals.AverageOccupancy),
 		},
@@ -543,14 +543,14 @@ func (s *reportService) GetBookingsDynamicsReportPDF(userID uint64, from, to tim
 	if err != nil {
 		return nil, err
 	}
-	headers := []string{"Период", "Брон.", "Выручка", "Часы", "Загрузка"}
+	headers := []string{"Период", "Брон.", "Выручка", "Дни", "Загрузка"}
 	rows := make([][]string, 0, len(report.Rows))
 	for _, row := range report.Rows {
 		rows = append(rows, []string{
 			row.Bucket,
 			fmt.Sprintf("%d", row.BookingsCount),
 			fmt.Sprintf("%.2f", row.Revenue),
-			fmt.Sprintf("%.2f", row.BookedHours),
+			fmt.Sprintf("%.2f", row.BookedDays),
 			fmt.Sprintf("%.2f%%", row.Occupancy),
 		})
 	}
@@ -565,7 +565,7 @@ func (s *reportService) GetBookingsDynamicsReportPDF(userID uint64, from, to tim
 			fmt.Sprintf("Выручка: %.2f", report.Totals.Revenue),
 		},
 		{
-			fmt.Sprintf("Занято часов: %.2f", report.Totals.BookedHours),
+			fmt.Sprintf("Занято дней: %.2f", report.Totals.BookedDays),
 			fmt.Sprintf("Средний чек: %.2f", report.Totals.AvgCheck),
 			fmt.Sprintf("Средняя загрузка: %.2f%%", report.Totals.AverageOccupancy),
 		},
@@ -642,14 +642,14 @@ func (s *reportService) GetSalesReportPDF(userID uint64, from, to time.Time, hal
 			"Средний чек: " + formatMetric("avg_check", report.Totals),
 		},
 		{
-			fmt.Sprintf("Загружено часов: %.2f", report.Summary.TotalBookedHours),
-			fmt.Sprintf("Доступно часов: %.2f", report.Summary.AvailableHours),
+			fmt.Sprintf("Загружено дней: %.2f", report.Summary.TotalBookedDays),
+			fmt.Sprintf("Доступно дней: %.2f", report.Summary.AvailableDays),
 			"Загрузка: " + formatMetric("occupancy", report.Totals),
 		},
 		{
 			fmt.Sprintf("Строк отчета: %d", report.Summary.RowsCount),
 			fmt.Sprintf("Залов в отчете: %d", report.Summary.HallsCount),
-			fmt.Sprintf("Интервал: %.1f ч", to.Sub(from).Hours()),
+			fmt.Sprintf("Интервал: %.1f дн", to.Sub(from).Hours()/24),
 		},
 	}
 
@@ -719,7 +719,7 @@ func (s *reportService) aggregateSales(bookings []model.Booking, from, to time.T
 			continue
 		}
 
-		bookingDuration := booking.EndDateTime.Sub(booking.StartDateTime).Hours()
+		bookingDuration := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
 		if bookingDuration <= 0 {
 			continue
 		}
@@ -727,8 +727,8 @@ func (s *reportService) aggregateSales(bookings []model.Booking, from, to time.T
 		if groupBy == "hall" {
 			key := fmt.Sprintf("hall:%d", booking.HallID)
 			agg := getAggregation(aggregations, key, from, to, &booking.HallID, &booking.Hall.Name)
-			agg.bookedHours += clampedEnd.Sub(clampedStart).Hours()
-			agg.revenue += booking.TotalPrice * (clampedEnd.Sub(clampedStart).Hours() / bookingDuration)
+			agg.bookedDays += clampedEnd.Sub(clampedStart).Hours() / 24
+			agg.revenue += booking.TotalPrice * ((clampedEnd.Sub(clampedStart).Hours() / 24) / bookingDuration)
 			agg.bookingsCount++
 			continue
 		}
@@ -737,12 +737,12 @@ func (s *reportService) aggregateSales(bookings []model.Booking, from, to time.T
 			bucketStart := truncateToBucket(segmentStart, groupBy)
 			bucketEnd := nextBucketStart(bucketStart, groupBy)
 			segmentEnd := minTime(clampedEnd, bucketEnd)
-			segmentHours := segmentEnd.Sub(segmentStart).Hours()
+			segmentDays := segmentEnd.Sub(segmentStart).Hours() / 24
 
 			key := bucketKey(bucketStart, groupBy)
 			agg := getAggregation(aggregations, key, maxTime(bucketStart, from), minTime(bucketEnd, to), nil, nil)
-			agg.bookedHours += segmentHours
-			agg.revenue += booking.TotalPrice * (segmentHours / bookingDuration)
+			agg.bookedDays += segmentDays
+			agg.revenue += booking.TotalPrice * (segmentDays / bookingDuration)
 			agg.bookingsCount++
 
 			segmentStart = segmentEnd
@@ -761,43 +761,43 @@ func buildSalesResponse(aggregations map[string]*salesAggregation, from, to time
 
 	rows := make([]response.SalesReportRow, 0, len(keys))
 	var totalRevenue float64
-	var totalBookedHours float64
+	var totalBookedDays float64
 	var totalBookings uint64
 
 	for _, key := range keys {
 		agg := aggregations[key]
 		totalRevenue += agg.revenue
-		totalBookedHours += agg.bookedHours
+		totalBookedDays += agg.bookedDays
 		totalBookings += agg.bookingsCount
 
-		availableHours := agg.bucketEnd.Sub(agg.bucketStart).Hours()
+		availableDays := agg.bucketEnd.Sub(agg.bucketStart).Hours() / 24
 		if groupBy != "hall" {
-			availableHours *= float64(hallsCount)
+			availableDays *= float64(hallsCount)
 		}
-		metricsValue := selectMetrics(metrics, agg.revenue, agg.bookingsCount, agg.bookedHours, availableHours)
+		metricsValue := selectMetrics(metrics, agg.revenue, agg.bookingsCount, agg.bookedDays, availableDays)
 
 		row := response.SalesReportRow{
-			Bucket:      key,
-			HallID:      agg.hallID,
-			HallName:    agg.hallName,
-			DateFrom:    agg.bucketStart.Format(time.RFC3339),
-			DateTo:      agg.bucketEnd.Format(time.RFC3339),
-			BookedHours: round2(agg.bookedHours),
-			Metrics:     metricsValue,
+			Bucket:     key,
+			HallID:     agg.hallID,
+			HallName:   agg.hallName,
+			DateFrom:   agg.bucketStart.Format(time.RFC3339),
+			DateTo:     agg.bucketEnd.Format(time.RFC3339),
+			BookedDays: round2(agg.bookedDays),
+			Metrics:    metricsValue,
 		}
 		rows = append(rows, row)
 	}
 
-	totalAvailableHours := to.Sub(from).Hours()
+	totalAvailableDays := to.Sub(from).Hours() / 24
 	if groupBy != "hall" {
-		totalAvailableHours *= float64(hallsCount)
+		totalAvailableDays *= float64(hallsCount)
 	}
-	totals := selectMetrics(metrics, totalRevenue, totalBookings, totalBookedHours, totalAvailableHours)
+	totals := selectMetrics(metrics, totalRevenue, totalBookings, totalBookedDays, totalAvailableDays)
 	summary := response.SalesReportSummary{
-		RowsCount:        uint64(len(rows)),
-		HallsCount:       hallsCount,
-		TotalBookedHours: round2(totalBookedHours),
-		AvailableHours:   round2(totalAvailableHours),
+		RowsCount:       uint64(len(rows)),
+		HallsCount:      hallsCount,
+		TotalBookedDays: round2(totalBookedDays),
+		AvailableDays:   round2(totalAvailableDays),
 	}
 
 	return rows, totals, summary
@@ -861,7 +861,7 @@ func normalizeMetrics(metrics []string) ([]string, error) {
 	return result, nil
 }
 
-func selectMetrics(selected []string, revenue float64, bookingsCount uint64, bookedHours, availableHours float64) response.SalesReportMetrics {
+func selectMetrics(selected []string, revenue float64, bookingsCount uint64, bookedDays, availableDays float64) response.SalesReportMetrics {
 	m := response.SalesReportMetrics{}
 	for _, metric := range selected {
 		switch metric {
@@ -880,8 +880,8 @@ func selectMetrics(selected []string, revenue float64, bookingsCount uint64, boo
 			m.AvgCheck = &avg
 		case "occupancy":
 			var occupancy float64
-			if availableHours > 0 {
-				occupancy = (bookedHours / availableHours) * 100
+			if availableDays > 0 {
+				occupancy = (bookedDays / availableDays) * 100
 			}
 			occupancy = round2(occupancy)
 			m.Occupancy = &occupancy

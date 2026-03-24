@@ -61,7 +61,7 @@ func (h *BookingHandler) Create(c fiber.Ctx) error {
 			booking.Hall.ID,
 			booking.Hall.Name,
 			booking.Hall.Description,
-			booking.Hall.PricePerHour,
+			booking.Hall.PricePerDay,
 			booking.Hall.IsActive,
 			[]string{},
 		),
@@ -121,7 +121,7 @@ func (h *BookingHandler) GetAllFromUser(c fiber.Ctx) error {
 	}
 	bookingsFull := make([]response.BookingFull, len(bookings))
 	for i, booking := range bookings {
-		hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerHour, booking.Hall.IsActive, []string{})
+		hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerDay, booking.Hall.IsActive, []string{})
 		userShort := response.NewUserShort(booking.User.ID, booking.User.FullName, booking.User.Email)
 		bookingsFull[i] = response.NewBookingFull(booking.ID, *hallFull, *userShort, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt)
 	}
@@ -152,7 +152,7 @@ func (h *BookingHandler) GetByID(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerHour, booking.Hall.IsActive, []string{})
+	hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerDay, booking.Hall.IsActive, []string{})
 	userShort := response.NewUserShort(booking.User.ID, booking.User.FullName, booking.User.Email)
 	return c.Status(fiber.StatusOK).JSON(response.NewBookingFull(booking.ID, *hallFull, *userShort, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt))
 }
@@ -243,7 +243,7 @@ func (h *BookingHandler) GetAll(c fiber.Ctx) error {
 	}
 	bookingFulls := make([]response.BookingFull, len(bookings))
 	for i, booking := range bookings {
-		hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerHour, booking.Hall.IsActive, []string{})
+		hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerDay, booking.Hall.IsActive, []string{})
 		userShort := response.NewUserShort(booking.User.ID, booking.User.FullName, booking.User.Email)
 		bookingFulls[i] = response.NewBookingFull(booking.ID, *hallFull, *userShort, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt)
 	}
@@ -284,7 +284,7 @@ func (h *BookingHandler) Update(c fiber.Ctx) error {
 		return err
 	}
 	userShort := response.NewUserShort(booking.User.ID, booking.User.FullName, booking.User.Email)
-	hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerHour, booking.Hall.IsActive, []string{})
+	hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerDay, booking.Hall.IsActive, []string{})
 	bookingFull := response.NewBookingFull(booking.ID, *hallFull, *userShort, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt)
 	return c.Status(fiber.StatusOK).JSON(bookingFull)
 }

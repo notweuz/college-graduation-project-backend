@@ -45,11 +45,16 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 		return nil, errs.BadRequest("Cannot create booking", "Start datetime must be before end datetime")
 	}
 
-	if req.StartDateTime.Before(time.Now()) {
+	normalizedStart, normalizedEnd := normalizeBookingRange(req.StartDateTime, req.EndDateTime)
+	if !normalizedStart.Before(normalizedEnd) {
+		return nil, errs.BadRequest("Cannot create booking", "Booking duration must include at least one full day")
+	}
+
+	if normalizedStart.Before(time.Now()) {
 		return nil, errs.BadRequest("Cannot create booking", "Start datetime cannot be in the past")
 	}
 
-	hasConflict, err := b.bookingDatabase.CheckConflict(req.HallID, req.StartDateTime, req.EndDateTime)
+	hasConflict, err := b.bookingDatabase.CheckConflict(req.HallID, normalizedStart, normalizedEnd)
 	if err != nil {
 		return nil, errs.InternalServerError("Cannot check booking conflict", err.Error())
 	}
@@ -58,16 +63,17 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 		return nil, errs.Conflict("Cannot create booking", "Hall is already booked for this time period")
 	}
 
-	duration := req.EndDateTime.Sub(req.StartDateTime)
-	totalPrice := hall.PricePerHour * duration.Hours()
+	duration := normalizedEnd.Sub(normalizedStart)
+	days := duration.Hours() / 24
+	totalPrice := hall.PricePerDay * days
 
 	booking := &model.Booking{
 		User:          *user,
 		Hall:          *hall,
 		HallID:        req.HallID,
 		UserID:        userID,
-		StartDateTime: req.StartDateTime,
-		EndDateTime:   req.EndDateTime,
+		StartDateTime: normalizedStart,
+		EndDateTime:   normalizedEnd,
 		TotalPrice:    totalPrice,
 		Comment:       req.Comment,
 	}
@@ -78,6 +84,23 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 	}
 
 	return booking, nil
+}
+
+func normalizeBookingRange(start, end time.Time) (time.Time, time.Time) {
+	normalizedStart := startOfDay(start)
+	normalizedEnd := startOfDay(end)
+	if !isStartOfDay(end) {
+		normalizedEnd = normalizedEnd.Add(24 * time.Hour)
+	}
+	return normalizedStart, normalizedEnd
+}
+
+func startOfDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+
+func isStartOfDay(t time.Time) bool {
+	return t.Equal(startOfDay(t))
 }
 
 func (b *bookingService) FindAllFromUser(userID uint64, from, to *time.Time) ([]model.Booking, error) {

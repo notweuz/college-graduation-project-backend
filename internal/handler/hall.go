@@ -46,7 +46,7 @@ func (h *HallHandler) GetAllHalls(c fiber.Ctx) error {
 			if err != nil {
 				return err
 			}
-			halls = append(halls, *response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive, images))
+			halls = append(halls, *response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerDay, hall.IsActive, images))
 		}
 	} else {
 		hallsFull, err := h.hallService.FindAll()
@@ -58,7 +58,7 @@ func (h *HallHandler) GetAllHalls(c fiber.Ctx) error {
 			if err != nil {
 				return err
 			}
-			halls = append(halls, *response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive, images))
+			halls = append(halls, *response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerDay, hall.IsActive, images))
 		}
 	}
 	return c.Status(fiber.StatusOK).JSON(halls)
@@ -86,7 +86,7 @@ func (h *HallHandler) GetHallById(c fiber.Ctx) error {
 		return err
 	}
 
-	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive, images)
+	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerDay, hall.IsActive, images)
 	return c.Status(fiber.StatusOK).JSON(hallResponse)
 }
 
@@ -126,7 +126,7 @@ func (h *HallHandler) Create(c fiber.Ctx) error {
 		return err
 	}
 
-	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive, images)
+	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerDay, hall.IsActive, images)
 	return c.Status(fiber.StatusCreated).JSON(hallResponse)
 }
 
@@ -169,7 +169,7 @@ func (h *HallHandler) Update(c fiber.Ctx) error {
 		return err
 	}
 
-	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerHour, hall.IsActive, images)
+	hallResponse := response.NewHallFull(hall.ID, hall.Name, hall.Description, hall.PricePerDay, hall.IsActive, images)
 	return c.Status(fiber.StatusOK).JSON(hallResponse)
 }
 

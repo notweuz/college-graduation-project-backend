@@ -40,7 +40,7 @@ func (s *hallService) Create(userID uint64, hallCreate *request.HallCreate) (*mo
 		return nil, errs.Forbidden("Forbidden", "user is not admin")
 	}
 
-	hall := model.NewHall(0, hallCreate.Name, hallCreate.Description, hallCreate.PricePerHour, true)
+	hall := model.NewHall(0, hallCreate.Name, hallCreate.Description, hallCreate.PricePerDay, true)
 
 	err = s.database.Create(hall)
 	if err != nil {
@@ -106,8 +106,8 @@ func (s *hallService) Update(userID, id uint64, hallUpdate *request.HallUpdate) 
 	if hallUpdate.Description != nil {
 		hall.Description = *hallUpdate.Description
 	}
-	if hallUpdate.PricePerHour != nil {
-		hall.PricePerHour = *hallUpdate.PricePerHour
+	if hallUpdate.PricePerDay != nil {
+		hall.PricePerDay = *hallUpdate.PricePerDay
 	}
 	if hallUpdate.IsActive != nil {
 		hall.IsActive = *hallUpdate.IsActive
