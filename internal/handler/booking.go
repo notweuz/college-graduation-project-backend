@@ -290,6 +290,20 @@ func (h *BookingHandler) Update(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(bookingFull)
 }
 
+// CalculatePrice godoc
+// @Summary Calculate booking price
+// @Description Рассчитывает стоимость бронирования зала по дню (`date`) или периоду (`from` + `to`) в формате YYYY-MM-DD.
+// @Tags bookings
+// @Produce json
+// @Param hall_id path int true "ID зала"
+// @Param date query string false "Дата бронирования (YYYY-MM-DD); взаимоисключаемо с from/to"
+// @Param from query string false "Дата начала периода (YYYY-MM-DD); используется вместе с to"
+// @Param to query string false "Дата конца периода (YYYY-MM-DD); используется вместе с from"
+// @Success 200 {object} response.CalculatedPrice
+// @Failure 400 {object} BadRequestErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/bookings/{hall_id}/calculate-price [get]
 func (h *BookingHandler) CalculatePrice(c fiber.Ctx) error {
 	hallID := fiber.Params[uint64](c, "hall_id")
 
