@@ -61,3 +61,8 @@ type ReportService interface {
 	GetClientsReportPDF(userID uint64, from, to time.Time, hallID *uint64, limit uint64) ([]byte, error)
 	GetBookingsDynamicsReportPDF(userID uint64, from, to time.Time, hallID *uint64, groupBy string) ([]byte, error)
 }
+
+type UserAgreementService interface {
+	Get() (*model.UserAgreement, error)
+	Update(userID uint64, text string) (*model.UserAgreement, error)
+}

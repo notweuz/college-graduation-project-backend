@@ -28,6 +28,7 @@ func SetupDatabase() error {
 		&model.HallImage{},
 		&model.Booking{},
 		&model.Review{},
+		&model.UserAgreement{},
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to migrate database")

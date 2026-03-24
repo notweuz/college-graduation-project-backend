@@ -56,3 +56,8 @@ type ReportDatabase interface {
 	FindReportBookings(from, to time.Time, hallID *uint64) ([]model.Booking, error)
 	CountHalls(hallID *uint64) (uint64, error)
 }
+
+type UserAgreementDatabase interface {
+	Get() (*model.UserAgreement, error)
+	Save(text string) (*model.UserAgreement, error)
+}

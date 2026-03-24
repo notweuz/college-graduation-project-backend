@@ -8,24 +8,26 @@ import (
 )
 
 type Router struct {
-	app            *fiber.App
-	authHandler    *handler.AuthHandler
-	userHandler    *handler.UserHandler
-	hallHandler    *handler.HallHandler
-	bookingHandler *handler.BookingHandler
-	reviewHandler  *handler.ReviewHandler
-	reportHandler  *handler.ReportHandler
+	app                  *fiber.App
+	authHandler          *handler.AuthHandler
+	userHandler          *handler.UserHandler
+	hallHandler          *handler.HallHandler
+	bookingHandler       *handler.BookingHandler
+	reviewHandler        *handler.ReviewHandler
+	reportHandler        *handler.ReportHandler
+	userAgreementHandler *handler.UserAgreementHandler
 }
 
-func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler, bookingHandler *handler.BookingHandler, reviewHandler *handler.ReviewHandler, reportHandler *handler.ReportHandler) *Router {
+func NewRouter(app *fiber.App, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, hallHandler *handler.HallHandler, bookingHandler *handler.BookingHandler, reviewHandler *handler.ReviewHandler, reportHandler *handler.ReportHandler, userAgreementHandler *handler.UserAgreementHandler) *Router {
 	return &Router{
-		app:            app,
-		authHandler:    authHandler,
-		userHandler:    userHandler,
-		hallHandler:    hallHandler,
-		bookingHandler: bookingHandler,
-		reviewHandler:  reviewHandler,
-		reportHandler:  reportHandler,
+		app:                  app,
+		authHandler:          authHandler,
+		userHandler:          userHandler,
+		hallHandler:          hallHandler,
+		bookingHandler:       bookingHandler,
+		reviewHandler:        reviewHandler,
+		reportHandler:        reportHandler,
+		userAgreementHandler: userAgreementHandler,
 	}
 }
 
@@ -34,6 +36,7 @@ func (r *Router) Setup() {
 	admin := api.Group("/admin")
 
 	r.setupAuthRoutes(api)
+	r.setupPublicRoutes(api)
 	r.setupUserRoutes(api)
 	r.setupHallRoutes(api)
 	r.setupImageRoutes(api)
@@ -43,6 +46,7 @@ func (r *Router) Setup() {
 	r.setupAdminBookingRoutes(admin)
 	r.setupAdminReviewRoutes(admin)
 	r.setupAdminReportRoutes(admin)
+	r.setupAdminUserAgreementRoutes(admin)
 }
 
 func (r *Router) setupAuthRoutes(api fiber.Router) {
@@ -58,6 +62,11 @@ func (r *Router) setupUserRoutes(api fiber.Router) {
 	users.Get("/me", r.userHandler.GetProfile)
 	users.Get("/me/role", r.userHandler.GetRole)
 	users.Patch("/me", r.userHandler.UpdateProfile)
+}
+
+func (r *Router) setupPublicRoutes(api fiber.Router) {
+	public := api.Group("/public")
+	public.Get("/user-agreement", r.userAgreementHandler.GetPublic)
 }
 
 func (r *Router) setupHallRoutes(api fiber.Router) {
@@ -126,4 +135,8 @@ func (r *Router) setupAdminReportRoutes(api fiber.Router) {
 	reports.Get("/clients/pdf", r.reportHandler.GetClientsReportPDF)
 	reports.Get("/bookings-dynamics", r.reportHandler.GetBookingsDynamicsReport)
 	reports.Get("/bookings-dynamics/pdf", r.reportHandler.GetBookingsDynamicsReportPDF)
+}
+
+func (r *Router) setupAdminUserAgreementRoutes(api fiber.Router) {
+	api.Put("/user-agreement", middleware.Protected(), r.userAgreementHandler.UpdateAdmin)
 }
