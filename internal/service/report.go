@@ -103,7 +103,8 @@ func (s *reportService) GetSalesReport(userID uint64, from, to time.Time, hallID
 	}
 
 	aggregations := s.aggregateSales(bookings, from, to, groupBy)
-	rows, totals, summary := buildSalesResponse(aggregations, from, to, groupBy, metrics, hallCount)
+	uniqueBookingsCount := countOverlappingBookings(bookings, from, to)
+	rows, totals, summary := buildSalesResponse(aggregations, from, to, groupBy, metrics, hallCount, uniqueBookingsCount)
 
 	report := &response.SalesReport{
 		StudioName:  studioName,
@@ -159,7 +160,7 @@ func (s *reportService) GetHallsLoadReport(userID uint64, from, to time.Time, ha
 		if !clampedStart.Before(clampedEnd) {
 			continue
 		}
-		durationDays := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
+		durationDays := billableDaysBetween(booking.StartDateTime, booking.EndDateTime)
 		if durationDays <= 0 {
 			continue
 		}
@@ -173,7 +174,7 @@ func (s *reportService) GetHallsLoadReport(userID uint64, from, to time.Time, ha
 			aggregated[booking.HallID] = agg
 		}
 
-		overlapDays := clampedEnd.Sub(clampedStart).Hours() / 24
+		overlapDays := billableDaysBetween(clampedStart, clampedEnd)
 		agg.bookingsCount++
 		agg.bookedDays += overlapDays
 		agg.revenue += booking.TotalPrice * (overlapDays / durationDays)
@@ -183,7 +184,7 @@ func (s *reportService) GetHallsLoadReport(userID uint64, from, to time.Time, ha
 	var totalBookings uint64
 	var totalRevenue float64
 	var totalBookedDays float64
-	availablePerHallDays := to.Sub(from).Hours() / 24
+	availablePerHallDays := billableDaysBetween(from, to)
 	for _, agg := range aggregated {
 		totalBookings += agg.bookingsCount
 		totalRevenue += agg.revenue
@@ -262,11 +263,11 @@ func (s *reportService) GetClientsReport(userID uint64, from, to time.Time, hall
 			continue
 		}
 
-		durationDays := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
+		durationDays := billableDaysBetween(booking.StartDateTime, booking.EndDateTime)
 		if durationDays <= 0 {
 			continue
 		}
-		overlapDays := clampedEnd.Sub(clampedStart).Hours() / 24
+		overlapDays := billableDaysBetween(clampedStart, clampedEnd)
 		overlapRevenue := booking.TotalPrice * (overlapDays / durationDays)
 
 		agg, ok := aggregated[booking.UserID]
@@ -369,7 +370,7 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 		if !clampedStart.Before(clampedEnd) {
 			continue
 		}
-		durationDays := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
+		durationDays := billableDaysBetween(booking.StartDateTime, booking.EndDateTime)
 		if durationDays <= 0 {
 			continue
 		}
@@ -378,7 +379,7 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 			bucketStart := truncateToBucket(segmentStart, groupBy)
 			bucketEnd := nextBucketStart(bucketStart, groupBy)
 			segmentEnd := minTime(clampedEnd, bucketEnd)
-			segmentDays := segmentEnd.Sub(segmentStart).Hours() / 24
+			segmentDays := billableDaysBetween(segmentStart, segmentEnd)
 
 			key := bucketKey(bucketStart, groupBy)
 			agg, ok := aggregated[key]
@@ -404,16 +405,15 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 	sort.Strings(keys)
 
 	rows := make([]response.BookingsDynamicsRow, 0, len(keys))
-	var totalBookings uint64
+	uniqueBookingsCount := countOverlappingBookings(bookings, from, to)
 	var totalRevenue float64
 	var totalBookedDays float64
 	var occupancySum float64
 	for _, key := range keys {
 		agg := aggregated[key]
-		availableDays := (agg.bucketEnd.Sub(agg.bucketStart).Hours() / 24) * float64(hallCount)
+		availableDays := billableDaysBetween(agg.bucketStart, agg.bucketEnd) * float64(hallCount)
 		occupancy := safePercent(agg.bookedDays, availableDays)
 		occupancySum += occupancy
-		totalBookings += agg.bookingsCount
 		totalRevenue += agg.revenue
 		totalBookedDays += agg.bookedDays
 
@@ -449,10 +449,10 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 		Rows: rows,
 		Totals: response.BookingsDynamicsTotals{
 			RowsCount:        uint64(len(rows)),
-			BookingsCount:    totalBookings,
+			BookingsCount:    uniqueBookingsCount,
 			Revenue:          round2(totalRevenue),
 			BookedDays:       round2(totalBookedDays),
-			AvgCheck:         safeAvg(totalRevenue, totalBookings),
+			AvgCheck:         safeAvg(totalRevenue, uniqueBookingsCount),
 			AverageOccupancy: avgOccupancy,
 		},
 	}, nil
@@ -476,7 +476,7 @@ func (s *reportService) GetHallsLoadReportPDF(userID uint64, from, to time.Time,
 		})
 	}
 	meta := []string{
-		fmt.Sprintf("Период: %s - %s", report.From, report.To),
+		fmt.Sprintf("Период: %s", formatPeriod(report.From, report.To)),
 		fmt.Sprintf("Итого: выручка %.2f, броней %d", report.Totals.Revenue, report.Totals.BookingsCount),
 	}
 	summaryRows := [][]string{
@@ -520,7 +520,7 @@ func (s *reportService) GetClientsReportPDF(userID uint64, from, to time.Time, h
 		})
 	}
 	meta := []string{
-		fmt.Sprintf("Период: %s - %s", report.From, report.To),
+		fmt.Sprintf("Период: %s", formatPeriod(report.From, report.To)),
 		fmt.Sprintf("Клиентов: %d | Выручка: %.2f", report.Summary.UniqueClients, report.Summary.Revenue),
 	}
 	summaryRows := [][]string{
@@ -532,7 +532,7 @@ func (s *reportService) GetClientsReportPDF(userID uint64, from, to time.Time, h
 		{
 			fmt.Sprintf("Средний чек: %.2f", report.Summary.AvgCheck),
 			fmt.Sprintf("TOP лимит: %d", report.Filters.Limit),
-			fmt.Sprintf("Период: %s - %s", report.From, report.To),
+			fmt.Sprintf("Период: %s", formatPeriod(report.From, report.To)),
 		},
 	}
 	return buildSimpleReportPDF(report.StudioName, report.Title, report.GeneratedAt, meta, summaryRows, headers, rows)
@@ -555,7 +555,7 @@ func (s *reportService) GetBookingsDynamicsReportPDF(userID uint64, from, to tim
 		})
 	}
 	meta := []string{
-		fmt.Sprintf("Период: %s - %s", report.From, report.To),
+		fmt.Sprintf("Период: %s", formatPeriod(report.From, report.To)),
 		fmt.Sprintf("Группировка: %s | Броней: %d", report.GroupBy, report.Totals.BookingsCount),
 	}
 	summaryRows := [][]string{
@@ -613,7 +613,7 @@ func (s *reportService) GetSalesReportPDF(userID uint64, from, to time.Time, hal
 
 	m.Row(6, func() {
 		m.Col(12, func() {
-			m.Text(fmt.Sprintf("Период: %s - %s", report.From, report.To), props.Text{Size: 9, Color: dark})
+			m.Text(fmt.Sprintf("Период: %s", formatPeriod(report.From, report.To)), props.Text{Size: 9, Color: dark})
 		})
 	})
 	m.Row(6, func() {
@@ -649,7 +649,7 @@ func (s *reportService) GetSalesReportPDF(userID uint64, from, to time.Time, hal
 		{
 			fmt.Sprintf("Строк отчета: %d", report.Summary.RowsCount),
 			fmt.Sprintf("Залов в отчете: %d", report.Summary.HallsCount),
-			fmt.Sprintf("Интервал: %.1f дн", to.Sub(from).Hours()/24),
+			fmt.Sprintf("Интервал: %.0f дн", billableDaysBetween(from, to)),
 		},
 	}
 
@@ -719,7 +719,7 @@ func (s *reportService) aggregateSales(bookings []model.Booking, from, to time.T
 			continue
 		}
 
-		bookingDuration := booking.EndDateTime.Sub(booking.StartDateTime).Hours() / 24
+		bookingDuration := billableDaysBetween(booking.StartDateTime, booking.EndDateTime)
 		if bookingDuration <= 0 {
 			continue
 		}
@@ -727,8 +727,9 @@ func (s *reportService) aggregateSales(bookings []model.Booking, from, to time.T
 		if groupBy == "hall" {
 			key := fmt.Sprintf("hall:%d", booking.HallID)
 			agg := getAggregation(aggregations, key, from, to, &booking.HallID, &booking.Hall.Name)
-			agg.bookedDays += clampedEnd.Sub(clampedStart).Hours() / 24
-			agg.revenue += booking.TotalPrice * ((clampedEnd.Sub(clampedStart).Hours() / 24) / bookingDuration)
+			overlapDays := billableDaysBetween(clampedStart, clampedEnd)
+			agg.bookedDays += overlapDays
+			agg.revenue += booking.TotalPrice * (overlapDays / bookingDuration)
 			agg.bookingsCount++
 			continue
 		}
@@ -737,7 +738,7 @@ func (s *reportService) aggregateSales(bookings []model.Booking, from, to time.T
 			bucketStart := truncateToBucket(segmentStart, groupBy)
 			bucketEnd := nextBucketStart(bucketStart, groupBy)
 			segmentEnd := minTime(clampedEnd, bucketEnd)
-			segmentDays := segmentEnd.Sub(segmentStart).Hours() / 24
+			segmentDays := billableDaysBetween(segmentStart, segmentEnd)
 
 			key := bucketKey(bucketStart, groupBy)
 			agg := getAggregation(aggregations, key, maxTime(bucketStart, from), minTime(bucketEnd, to), nil, nil)
@@ -752,7 +753,7 @@ func (s *reportService) aggregateSales(bookings []model.Booking, from, to time.T
 	return aggregations
 }
 
-func buildSalesResponse(aggregations map[string]*salesAggregation, from, to time.Time, groupBy string, metrics []string, hallsCount uint64) ([]response.SalesReportRow, response.SalesReportMetrics, response.SalesReportSummary) {
+func buildSalesResponse(aggregations map[string]*salesAggregation, from, to time.Time, groupBy string, metrics []string, hallsCount uint64, uniqueBookingsCount uint64) ([]response.SalesReportRow, response.SalesReportMetrics, response.SalesReportSummary) {
 	keys := make([]string, 0, len(aggregations))
 	for key := range aggregations {
 		keys = append(keys, key)
@@ -762,15 +763,13 @@ func buildSalesResponse(aggregations map[string]*salesAggregation, from, to time
 	rows := make([]response.SalesReportRow, 0, len(keys))
 	var totalRevenue float64
 	var totalBookedDays float64
-	var totalBookings uint64
 
 	for _, key := range keys {
 		agg := aggregations[key]
 		totalRevenue += agg.revenue
 		totalBookedDays += agg.bookedDays
-		totalBookings += agg.bookingsCount
 
-		availableDays := agg.bucketEnd.Sub(agg.bucketStart).Hours() / 24
+		availableDays := billableDaysBetween(agg.bucketStart, agg.bucketEnd)
 		if groupBy != "hall" {
 			availableDays *= float64(hallsCount)
 		}
@@ -788,11 +787,11 @@ func buildSalesResponse(aggregations map[string]*salesAggregation, from, to time
 		rows = append(rows, row)
 	}
 
-	totalAvailableDays := to.Sub(from).Hours() / 24
+	totalAvailableDays := billableDaysBetween(from, to)
 	if groupBy != "hall" {
 		totalAvailableDays *= float64(hallsCount)
 	}
-	totals := selectMetrics(metrics, totalRevenue, totalBookings, totalBookedDays, totalAvailableDays)
+	totals := selectMetrics(metrics, totalRevenue, uniqueBookingsCount, totalBookedDays, totalAvailableDays)
 	summary := response.SalesReportSummary{
 		RowsCount:       uint64(len(rows)),
 		HallsCount:      hallsCount,
@@ -1103,6 +1102,43 @@ func safePercent(part, total float64) float64 {
 		return 0
 	}
 	return round2((part / total) * 100)
+}
+
+func countOverlappingBookings(bookings []model.Booking, from, to time.Time) uint64 {
+	var total uint64
+	for _, booking := range bookings {
+		if maxTime(booking.StartDateTime, from).Before(minTime(booking.EndDateTime, to)) {
+			total++
+		}
+	}
+	return total
+}
+
+func billableDaysBetween(start, end time.Time) float64 {
+	if !start.Before(end) {
+		return 0
+	}
+	loc := bookingCalendarLocation()
+	normalizedStart := startOfDayInLocation(start, loc)
+	normalizedEnd := startOfDayInLocation(end, loc)
+	if !isStartOfDayInLocation(end, loc) {
+		normalizedEnd = normalizedEnd.AddDate(0, 0, 1)
+	}
+	if !normalizedStart.Before(normalizedEnd) {
+		return 0
+	}
+
+	var days float64
+	for day := normalizedStart; day.Before(normalizedEnd); day = day.AddDate(0, 0, 1) {
+		days++
+	}
+	return days
+}
+
+func formatPeriod(fromRFC3339, toRFC3339 string) string {
+	from := formatDateOnly(fromRFC3339)
+	to := formatDateOnly(toRFC3339)
+	return from + " - " + to
 }
 
 func (s *reportService) ensureAdmin(userID uint64) error {
