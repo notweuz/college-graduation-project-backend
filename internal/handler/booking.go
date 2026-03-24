@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model/request"
 	"college-graduation-project-backend/internal/model/response"
@@ -287,4 +288,42 @@ func (h *BookingHandler) Update(c fiber.Ctx) error {
 	hallFull := response.NewHallFull(booking.Hall.ID, booking.Hall.Name, booking.Hall.Description, booking.Hall.PricePerDay, booking.Hall.IsActive, []string{})
 	bookingFull := response.NewBookingFull(booking.ID, *hallFull, *userShort, booking.StartDateTime, booking.EndDateTime, booking.TotalPrice, booking.Comment, booking.CreatedAt)
 	return c.Status(fiber.StatusOK).JSON(bookingFull)
+}
+
+func (h *BookingHandler) CalculatePrice(c fiber.Ctx) error {
+	hallID := fiber.Params[uint64](c, "hall_id")
+
+	dateStr := c.Query("date")
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
+
+	var from, to time.Time
+	var err error
+
+	if dateStr != "" {
+		from, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return errs.BadRequest("Invalid 'date' format, use YYYY-MM-DD", err.Error())
+		}
+		to = from.Add(24 * time.Hour)
+	} else if fromStr != "" && toStr != "" {
+		from, err = time.Parse("2006-01-02", fromStr)
+		if err != nil {
+			return errs.BadRequest("Invalid 'from' format, use YYYY-MM-DD", err.Error())
+		}
+		to, err = time.Parse("2006-01-02", toStr)
+		if err != nil {
+			return errs.BadRequest("Invalid 'to' format, use YYYY-MM-DD", err.Error())
+		}
+		to = to.Add(24 * time.Hour)
+	} else {
+		return errs.BadRequest("Invalid parameters", "provide either 'date' or both 'from' and 'to' parameters")
+	}
+
+	calculated, err := h.bookingService.CalculatePrice(hallID, from, to)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(calculated)
 }

@@ -7,6 +7,7 @@ import (
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
 	"college-graduation-project-backend/internal/model/request"
+	"college-graduation-project-backend/internal/model/response"
 	"errors"
 	"time"
 
@@ -55,18 +56,10 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 		return nil, errs.BadRequest("Cannot create booking", "Start datetime cannot be in the past")
 	}
 
-	hasConflict, err := b.bookingDatabase.CheckConflict(req.HallID, normalizedStart, normalizedEnd)
+	calculatedPrice, err := b.CalculatePrice(req.HallID, normalizedStart, normalizedEnd)
 	if err != nil {
-		return nil, errs.InternalServerError("Cannot check booking conflict", err.Error())
+		return nil, errs.InternalServerError("Cannot calculate booking price", err.Error())
 	}
-
-	if hasConflict {
-		return nil, errs.Conflict("Cannot create booking", "Hall is already booked for this time period")
-	}
-
-	duration := normalizedEnd.Sub(normalizedStart)
-	days := duration.Hours() / 24
-	totalPrice := hall.PricePerDay * days
 
 	booking := &model.Booking{
 		User:          *user,
@@ -75,7 +68,7 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 		UserID:        userID,
 		StartDateTime: normalizedStart,
 		EndDateTime:   normalizedEnd,
-		TotalPrice:    totalPrice,
+		TotalPrice:    calculatedPrice.Total,
 		Comment:       req.Comment,
 	}
 
@@ -208,4 +201,22 @@ func (b *bookingService) Update(userID, id uint64, req *request.BookingUpdate) (
 		return nil, errs.InternalServerError("Cannot update booking", err.Error())
 	}
 	return booking, nil
+}
+
+func (b *bookingService) CalculatePrice(hallID uint64, from, to time.Time) (*response.CalculatedPrice, error) {
+	hall, err := b.hallService.FindByID(hallID)
+	if err != nil {
+		return nil, err
+	}
+	normalizedStart, normalizedEnd := normalizeBookingRange(from, to)
+	duration := normalizedEnd.Sub(normalizedStart)
+	days := duration.Hours() / 24
+	defaultPrice := hall.PricePerDay * days
+	discount := 0.0
+	newPrice := 0.0
+	if days >= 2 {
+		newPrice = defaultPrice * 0.7
+		discount = newPrice - defaultPrice
+	}
+	return response.NewCalculatedPrice(defaultPrice, discount, newPrice), nil
 }

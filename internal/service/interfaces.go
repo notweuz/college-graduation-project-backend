@@ -41,6 +41,7 @@ type BookingService interface {
 	DeleteByAuthor(userID, id uint64) error
 	FindAll(userID uint64, hallID, bookingUserID *uint64, from, to *time.Time) ([]model.Booking, error)
 	Update(userID uint64, id uint64, req *request.BookingUpdate) (*model.Booking, error)
+	CalculatePrice(hallID uint64, from, to time.Time) (*response.CalculatedPrice, error)
 }
 
 type ReviewService interface {

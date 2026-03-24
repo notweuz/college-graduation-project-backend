@@ -25,3 +25,17 @@ func NewBookingFull(id uint64, hall HallFull, user UserShort, startDateTime time
 		CreatedAt:     createdAt,
 	}
 }
+
+type CalculatedPrice struct {
+	Price    float64 `json:"price"`
+	Discount float64 `json:"discount"`
+	Total    float64 `json:"total"`
+}
+
+func NewCalculatedPrice(price, discount, total float64) *CalculatedPrice {
+	return &CalculatedPrice{
+		Price:    price,
+		Discount: discount,
+		Total:    total,
+	}
+}
