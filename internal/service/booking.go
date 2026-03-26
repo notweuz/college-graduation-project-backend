@@ -62,6 +62,14 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 		return nil, errs.BadRequest("Cannot create booking", "Start date cannot be in the past")
 	}
 
+	hasConflict, err := b.bookingDatabase.CheckConflict(req.HallID, normalizedStart, normalizedEnd)
+	if err != nil {
+		return nil, errs.InternalServerError("Cannot create booking", err.Error())
+	}
+	if hasConflict {
+		return nil, errs.Conflict("Cannot create booking", "Selected dates conflict with an existing booking")
+	}
+
 	calculatedPrice, err := b.CalculatePrice(req.HallID, normalizedStart, normalizedEnd)
 	if err != nil {
 		return nil, errs.InternalServerError("Cannot calculate booking price", err.Error())
