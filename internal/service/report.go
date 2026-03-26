@@ -1,13 +1,19 @@
 package service
 
 import (
+	"bytes"
 	"college-graduation-project-backend/internal/database"
 	"college-graduation-project-backend/internal/datetime"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
 	"college-graduation-project-backend/internal/model/response"
+	"encoding/base64"
 	"fmt"
+	"image"
+	stdcolor "image/color"
+	imagedraw "image/draw"
+	"image/png"
 	"math"
 	"os"
 	"sort"
@@ -544,34 +550,7 @@ func (s *reportService) GetBookingsDynamicsReportPDF(userID uint64, from, to tim
 	if err != nil {
 		return nil, err
 	}
-	headers := []string{"Период", "Брон.", "Выручка", "Дни", "Загрузка"}
-	rows := make([][]string, 0, len(report.Rows))
-	for _, row := range report.Rows {
-		rows = append(rows, []string{
-			row.Bucket,
-			fmt.Sprintf("%d", row.BookingsCount),
-			fmt.Sprintf("%.2f", row.Revenue),
-			fmt.Sprintf("%.2f", row.BookedDays),
-			fmt.Sprintf("%.2f%%", row.Occupancy),
-		})
-	}
-	meta := []string{
-		fmt.Sprintf("Период: %s", formatPeriod(report.From, report.To)),
-		fmt.Sprintf("Группировка: %s | Броней: %d", report.GroupBy, report.Totals.BookingsCount),
-	}
-	summaryRows := [][]string{
-		{
-			fmt.Sprintf("Строк динамики: %d", report.Totals.RowsCount),
-			fmt.Sprintf("Бронирований: %d", report.Totals.BookingsCount),
-			fmt.Sprintf("Выручка: %.2f", report.Totals.Revenue),
-		},
-		{
-			fmt.Sprintf("Занято дней: %.2f", report.Totals.BookedDays),
-			fmt.Sprintf("Средний чек: %.2f", report.Totals.AvgCheck),
-			fmt.Sprintf("Средняя загрузка: %.2f%%", report.Totals.AverageOccupancy),
-		},
-	}
-	return buildSimpleReportPDF(report.StudioName, report.Title, report.GeneratedAt, meta, summaryRows, headers, rows)
+	return buildBookingsDynamicsReportPDF(report)
 }
 
 func (s *reportService) GetSalesReportPDF(userID uint64, from, to time.Time, hallID *uint64, groupBy string, metrics []string) ([]byte, error) {
@@ -1288,4 +1267,387 @@ func buildSimpleReportPDF(studio, title, generatedAt string, meta []string, summ
 		return nil, errs.InternalServerError("Cannot generate report PDF", err.Error())
 	}
 	return out.Bytes(), nil
+}
+
+func buildBookingsDynamicsReportPDF(report *response.BookingsDynamicsReport) ([]byte, error) {
+	m := pdf.NewMaroto(consts.Portrait, consts.A4)
+	if err := configureUTF8Font(m); err != nil {
+		return nil, errs.InternalServerError("Cannot generate report PDF", err.Error())
+	}
+	m.SetPageMargins(10, 12, 10)
+
+	dark := color.Color{Red: 28, Green: 45, Blue: 68}
+	light := color.Color{Red: 244, Green: 247, Blue: 252}
+	white := color.Color{Red: 255, Green: 255, Blue: 255}
+
+	m.SetBackgroundColor(dark)
+	m.Row(9, func() {
+		m.Col(12, func() {
+			m.Text(report.StudioName, props.Text{Top: 2, Style: consts.Bold, Size: 15, Align: consts.Center, Color: white})
+		})
+	})
+	m.SetBackgroundColor(white)
+
+	m.Row(8, func() {
+		m.Col(12, func() {
+			m.Text(report.Title+" (диаграммы)", props.Text{Top: 1, Style: consts.Bold, Size: 12, Align: consts.Center, Color: dark})
+		})
+	})
+
+	m.Row(6, func() {
+		m.Col(12, func() {
+			m.Text(fmt.Sprintf("Период: %s", formatPeriod(report.From, report.To)), props.Text{Size: 9, Color: dark})
+		})
+	})
+	m.Row(6, func() {
+		m.Col(12, func() {
+			m.Text(fmt.Sprintf("Группировка: %s | Сегментов: %d", report.GroupBy, report.Totals.RowsCount), props.Text{Size: 9, Color: dark})
+		})
+	})
+	m.Row(6, func() {
+		m.Col(12, func() {
+			m.Text("Сформирован: "+report.GeneratedAt, props.Text{Size: 9, Color: dark})
+		})
+	})
+	m.Line(1, props.Line{Color: dark, Width: 0.2})
+
+	summaryRows := [][]string{
+		{
+			fmt.Sprintf("Бронирований: %d", report.Totals.BookingsCount),
+			fmt.Sprintf("Выручка: %.2f", report.Totals.Revenue),
+			fmt.Sprintf("Строк динамики: %d", report.Totals.RowsCount),
+		},
+		{
+			fmt.Sprintf("Занято дней: %.2f", report.Totals.BookedDays),
+			fmt.Sprintf("Средний чек: %.2f", report.Totals.AvgCheck),
+			fmt.Sprintf("Средняя загрузка: %.2f%%", report.Totals.AverageOccupancy),
+		},
+	}
+
+	m.SetBackgroundColor(light)
+	m.Row(8, func() {
+		m.Col(12, func() {
+			m.Text("Итоги периода", props.Text{Top: 1.5, Style: consts.Bold, Size: 11, Align: consts.Center, Color: dark})
+		})
+	})
+	m.SetBackgroundColor(white)
+	for _, summaryRow := range summaryRows {
+		values := summaryRow
+		m.Row(6, func() {
+			for _, value := range values {
+				text := value
+				m.Col(4, func() {
+					m.Text(text, props.Text{Size: 8.7, Color: dark})
+				})
+			}
+		})
+	}
+	m.Line(1, props.Line{Color: dark, Width: 0.2})
+
+	if len(report.Rows) == 0 {
+		m.Row(7, func() {
+			m.Col(12, func() {
+				m.Text("Нет данных за выбранный период", props.Text{Style: consts.Italic, Size: 9, Color: dark})
+			})
+		})
+	} else {
+		bookingsValues := make([]float64, 0, len(report.Rows))
+		revenueValues := make([]float64, 0, len(report.Rows))
+		occupancyValues := make([]float64, 0, len(report.Rows))
+		avgCheckValues := make([]float64, 0, len(report.Rows))
+		for _, row := range report.Rows {
+			bookingsValues = append(bookingsValues, float64(row.BookingsCount))
+			revenueValues = append(revenueValues, row.Revenue)
+			occupancyValues = append(occupancyValues, row.Occupancy)
+			avgCheckValues = append(avgCheckValues, safeAvg(row.Revenue, row.BookingsCount))
+		}
+
+		kpis := []struct {
+			title string
+			value string
+			delta string
+		}{
+			{
+				title: "Бронирования",
+				value: fmt.Sprintf("%d", report.Totals.BookingsCount),
+				delta: formatDeltaToPrevious(bookingsValues),
+			},
+			{
+				title: "Выручка",
+				value: fmt.Sprintf("%.2f", report.Totals.Revenue),
+				delta: formatDeltaToPrevious(revenueValues),
+			},
+			{
+				title: "Средний чек",
+				value: fmt.Sprintf("%.2f", report.Totals.AvgCheck),
+				delta: formatDeltaToPrevious(avgCheckValues),
+			},
+			{
+				title: "Загрузка",
+				value: fmt.Sprintf("%.2f%%", report.Totals.AverageOccupancy),
+				delta: formatDeltaToPrevious(occupancyValues),
+			},
+		}
+
+		m.SetBackgroundColor(light)
+		m.Row(7, func() {
+			m.Col(12, func() {
+				m.Text("Ключевые показатели (сравнение с предыдущим сегментом)", props.Text{
+					Top:   1.2,
+					Style: consts.Bold,
+					Size:  10,
+					Align: consts.Center,
+					Color: dark,
+				})
+			})
+		})
+		m.SetBackgroundColor(white)
+
+		for i := 0; i < len(kpis); i += 2 {
+			leftKPI := kpis[i]
+			rightKPI := kpis[i+1]
+			m.Row(16, func() {
+				m.Col(6, func() {
+					m.Text(leftKPI.title, props.Text{Top: 1.3, Size: 8, Style: consts.Bold, Color: dark})
+					m.Text(leftKPI.value, props.Text{Top: 6, Size: 11, Style: consts.Bold, Color: dark})
+					m.Text(leftKPI.delta, props.Text{Top: 11, Size: 7.8, Style: consts.Italic, Color: dark})
+				})
+				m.Col(6, func() {
+					m.Text(rightKPI.title, props.Text{Top: 1.3, Size: 8, Style: consts.Bold, Color: dark})
+					m.Text(rightKPI.value, props.Text{Top: 6, Size: 11, Style: consts.Bold, Color: dark})
+					m.Text(rightKPI.delta, props.Text{Top: 11, Size: 7.8, Style: consts.Italic, Color: dark})
+				})
+			})
+		}
+		m.Line(1, props.Line{Color: dark, Width: 0.15})
+
+		if err := drawSparklineCard(m, dark, light, "Тренд бронирований", bookingsValues, func(v float64) string {
+			return fmt.Sprintf("%.0f", v)
+		}); err != nil {
+			return nil, errs.InternalServerError("Cannot generate report PDF", err.Error())
+		}
+		if err := drawSparklineCard(m, dark, light, "Тренд выручки", revenueValues, func(v float64) string {
+			return fmt.Sprintf("%.2f", v)
+		}); err != nil {
+			return nil, errs.InternalServerError("Cannot generate report PDF", err.Error())
+		}
+		if err := drawSparklineCard(m, dark, light, "Тренд среднего чека", avgCheckValues, func(v float64) string {
+			return fmt.Sprintf("%.2f", v)
+		}); err != nil {
+			return nil, errs.InternalServerError("Cannot generate report PDF", err.Error())
+		}
+		if err := drawSparklineCard(m, dark, light, "Тренд загрузки (%)", occupancyValues, func(v float64) string {
+			return fmt.Sprintf("%.2f%%", v)
+		}); err != nil {
+			return nil, errs.InternalServerError("Cannot generate report PDF", err.Error())
+		}
+	}
+
+	out, err := m.Output()
+	if err != nil {
+		return nil, errs.InternalServerError("Cannot generate report PDF", err.Error())
+	}
+	return out.Bytes(), nil
+}
+
+func drawSparklineCard(
+	m pdf.Maroto,
+	dark color.Color,
+	light color.Color,
+	title string,
+	values []float64,
+	formatValue func(v float64) string,
+) error {
+	if len(values) == 0 {
+		return nil
+	}
+
+	sparklineBase64, err := buildSparklinePNGBase64(values, 920, 180)
+	if err != nil {
+		return err
+	}
+
+	minValue := values[0]
+	maxValue := values[0]
+	for _, value := range values[1:] {
+		if value < minValue {
+			minValue = value
+		}
+		if value > maxValue {
+			maxValue = value
+		}
+	}
+	lastValue := values[len(values)-1]
+
+	m.SetBackgroundColor(light)
+	m.Row(7, func() {
+		m.Col(12, func() {
+			m.Text(title, props.Text{Top: 1.2, Style: consts.Bold, Size: 10, Align: consts.Center, Color: dark})
+		})
+	})
+	m.SetBackgroundColor(color.Color{Red: 255, Green: 255, Blue: 255})
+	m.Row(5, func() {
+		m.Col(12, func() {
+			m.Text(fmt.Sprintf("min: %s | max: %s | last: %s", formatValue(minValue), formatValue(maxValue), formatValue(lastValue)), props.Text{
+				Size:  8,
+				Style: consts.Italic,
+				Color: dark,
+			})
+		})
+	})
+	m.Row(30, func() {
+		m.Col(12, func() {
+			if imageErr := m.Base64Image(sparklineBase64, consts.Extension("png"), props.Rect{
+				Center:  true,
+				Percent: 100,
+			}); imageErr != nil && err == nil {
+				err = imageErr
+			}
+		})
+	})
+	if err != nil {
+		return err
+	}
+	m.Line(1, props.Line{Color: dark, Width: 0.15})
+	return nil
+}
+
+func buildSparklinePNGBase64(values []float64, width, height int) (string, error) {
+	if len(values) == 0 {
+		values = []float64{0}
+	}
+	if width < 120 {
+		width = 120
+	}
+	if height < 60 {
+		height = 60
+	}
+
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	bgColor := stdcolor.RGBA{R: 247, G: 250, B: 255, A: 255}
+	gridColor := stdcolor.RGBA{R: 223, G: 231, B: 243, A: 255}
+	lineColor := stdcolor.RGBA{R: 36, G: 78, B: 145, A: 255}
+	pointColor := stdcolor.RGBA{R: 16, G: 44, B: 89, A: 255}
+
+	imagedraw.Draw(img, img.Bounds(), &image.Uniform{C: bgColor}, image.Point{}, imagedraw.Src)
+
+	left := 28
+	right := width - 16
+	top := 12
+	bottom := height - 16
+	if right <= left {
+		right = left + 1
+	}
+	if bottom <= top {
+		bottom = top + 1
+	}
+
+	for i := 1; i <= 3; i++ {
+		y := top + ((bottom-top)*i)/4
+		drawLineRGBA(img, left, y, right, y, gridColor)
+	}
+
+	minValue := values[0]
+	maxValue := values[0]
+	for _, v := range values[1:] {
+		if v < minValue {
+			minValue = v
+		}
+		if v > maxValue {
+			maxValue = v
+		}
+	}
+
+	denominator := maxValue - minValue
+	xStep := 0.0
+	if len(values) > 1 {
+		xStep = float64(right-left) / float64(len(values)-1)
+	}
+
+	points := make([]image.Point, 0, len(values))
+	for i, v := range values {
+		x := left + int(math.Round(float64(i)*xStep))
+		ratio := 0.5
+		if denominator > 0 {
+			ratio = (v - minValue) / denominator
+		}
+		y := bottom - int(math.Round(ratio*float64(bottom-top)))
+		points = append(points, image.Point{X: x, Y: y})
+	}
+
+	for i := 0; i < len(points)-1; i++ {
+		drawLineRGBA(img, points[i].X, points[i].Y, points[i+1].X, points[i+1].Y, lineColor)
+	}
+	for _, p := range points {
+		drawFilledCircleRGBA(img, p.X, p.Y, 3, pointColor)
+	}
+
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+}
+
+func drawLineRGBA(img *image.RGBA, x0, y0, x1, y1 int, clr stdcolor.RGBA) {
+	dx := int(math.Abs(float64(x1 - x0)))
+	dy := -int(math.Abs(float64(y1 - y0)))
+	sx := -1
+	if x0 < x1 {
+		sx = 1
+	}
+	sy := -1
+	if y0 < y1 {
+		sy = 1
+	}
+	err := dx + dy
+	for {
+		setPixelSafeRGBA(img, x0, y0, clr)
+		if x0 == x1 && y0 == y1 {
+			break
+		}
+		e2 := 2 * err
+		if e2 >= dy {
+			err += dy
+			x0 += sx
+		}
+		if e2 <= dx {
+			err += dx
+			y0 += sy
+		}
+	}
+}
+
+func drawFilledCircleRGBA(img *image.RGBA, cx, cy, r int, clr stdcolor.RGBA) {
+	for y := -r; y <= r; y++ {
+		for x := -r; x <= r; x++ {
+			if x*x+y*y <= r*r {
+				setPixelSafeRGBA(img, cx+x, cy+y, clr)
+			}
+		}
+	}
+}
+
+func setPixelSafeRGBA(img *image.RGBA, x, y int, clr stdcolor.RGBA) {
+	bounds := img.Bounds()
+	if x < bounds.Min.X || x >= bounds.Max.X || y < bounds.Min.Y || y >= bounds.Max.Y {
+		return
+	}
+	img.SetRGBA(x, y, clr)
+}
+
+func formatDeltaToPrevious(values []float64) string {
+	if len(values) < 2 {
+		return "Δ к пред. сегменту: n/a"
+	}
+	prev := values[len(values)-2]
+	curr := values[len(values)-1]
+	if prev == 0 {
+		if curr == 0 {
+			return "Δ к пред. сегменту: 0.00%"
+		}
+		return "Δ к пред. сегменту: n/a"
+	}
+	delta := ((curr - prev) / prev) * 100
+	return fmt.Sprintf("Δ к пред. сегменту: %+0.2f%%", round2(delta))
 }
