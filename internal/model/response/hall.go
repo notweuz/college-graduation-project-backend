@@ -1,6 +1,9 @@
 package response
 
-import "time"
+import (
+	"college-graduation-project-backend/internal/datetime"
+	"time"
+)
 
 type HallFull struct {
 	ID          uint64   `json:"id"`
@@ -26,15 +29,15 @@ func NewHallFull(id uint64, name, description string, pricePerDay float64, isAct
 }
 
 type HallAvailability struct {
-	StartDateTime time.Time `json:"start_date_time"`
-	EndDateTime   time.Time `json:"end_date_time"`
-	Status        string    `json:"status"`
+	StartDateTime string `json:"start_date_time"`
+	EndDateTime   string `json:"end_date_time"`
+	Status        string `json:"status"`
 }
 
 func NewHallAvailability(startDateTime, endDateTime time.Time, status string) HallAvailability {
 	return HallAvailability{
-		StartDateTime: startDateTime,
-		EndDateTime:   endDateTime,
+		StartDateTime: datetime.Format(startDateTime),
+		EndDateTime:   datetime.Format(endDateTime),
 		Status:        status,
 	}
 }

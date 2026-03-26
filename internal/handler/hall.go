@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/datetime"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model/request"
@@ -224,21 +225,23 @@ func (h *HallHandler) GetHallAvailability(c fiber.Ctx) error {
 	var err error
 
 	if dateStr != "" {
-		from, err = time.Parse("2006-01-02", dateStr)
+		from, err = datetime.Parse(dateStr)
 		if err != nil {
 			return errs.BadRequest("Invalid 'date' format, use YYYY-MM-DD", err.Error())
 		}
-		to = from.Add(24 * time.Hour)
+		from = datetime.StartOfDay(from)
+		to = datetime.EndOfDay(from)
 	} else if fromStr != "" && toStr != "" {
-		from, err = time.Parse("2006-01-02", fromStr)
+		from, err = datetime.Parse(fromStr)
 		if err != nil {
 			return errs.BadRequest("Invalid 'from' format, use YYYY-MM-DD", err.Error())
 		}
-		to, err = time.Parse("2006-01-02", toStr)
+		to, err = datetime.Parse(toStr)
 		if err != nil {
 			return errs.BadRequest("Invalid 'to' format, use YYYY-MM-DD", err.Error())
 		}
-		to = to.Add(24 * time.Hour)
+		from = datetime.StartOfDay(from)
+		to = datetime.EndOfDay(to)
 	} else {
 		return errs.BadRequest("Invalid parameters", "provide either 'date' or both 'from' and 'to' parameters")
 	}

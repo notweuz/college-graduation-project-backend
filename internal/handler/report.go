@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/datetime"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/service"
@@ -25,8 +26,8 @@ func NewReportHandler(reportService service.ReportService) *ReportHandler {
 // @Tags admin-reports
 // @Produce json
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Param group_by query string false "Группировка: day|week|month"
 // @Param metrics query string false "Метрики через запятую: revenue,bookings_count,avg_check,occupancy"
@@ -61,8 +62,8 @@ func (h *ReportHandler) GetSalesReport(c fiber.Ctx) error {
 // @Tags admin-reports
 // @Produce application/pdf
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Param group_by query string false "Группировка: day|week|month"
 // @Param metrics query string false "Метрики через запятую: revenue,bookings_count,avg_check,occupancy"
@@ -100,8 +101,8 @@ func (h *ReportHandler) GetSalesReportPDF(c fiber.Ctx) error {
 // @Tags admin-reports
 // @Produce json
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Success 200 {object} response.HallsLoadReport
 // @Failure 400 {object} BadRequestErrorResponse
@@ -134,8 +135,8 @@ func (h *ReportHandler) GetHallsLoadReport(c fiber.Ctx) error {
 // @Tags admin-reports
 // @Produce application/pdf
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Success 200 {file} binary
 // @Failure 400 {object} BadRequestErrorResponse
@@ -170,8 +171,8 @@ func (h *ReportHandler) GetHallsLoadReportPDF(c fiber.Ctx) error {
 // @Tags admin-reports
 // @Produce json
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Param limit query int false "Ограничение числа строк (по умолчанию 20)"
 // @Success 200 {object} response.ClientsReport
@@ -214,8 +215,8 @@ func (h *ReportHandler) GetClientsReport(c fiber.Ctx) error {
 // @Tags admin-reports
 // @Produce application/pdf
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Param limit query int false "Ограничение числа строк (по умолчанию 20)"
 // @Success 200 {file} binary
@@ -260,8 +261,8 @@ func (h *ReportHandler) GetClientsReportPDF(c fiber.Ctx) error {
 // @Tags admin-reports
 // @Produce json
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Param group_by query string false "Группировка: day|week|month"
 // @Success 200 {object} response.BookingsDynamicsReport
@@ -296,8 +297,8 @@ func (h *ReportHandler) GetBookingsDynamicsReport(c fiber.Ctx) error {
 // @Tags admin-reports
 // @Produce application/pdf
 // @Security BearerAuth
-// @Param from query string true "Дата/время начала (RFC3339)"
-// @Param to query string true "Дата/время конца (RFC3339)"
+// @Param from query string true "Дата начала (YYYY-MM-DD)"
+// @Param to query string true "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Param group_by query string false "Группировка: day|week|month"
 // @Success 200 {file} binary
@@ -347,21 +348,23 @@ func parseSalesReportQuery(c fiber.Ctx) (time.Time, time.Time, *uint64, string, 
 func parseReportPeriodAndHall(c fiber.Ctx) (time.Time, time.Time, *uint64, error) {
 	fromRaw := strings.TrimSpace(c.Query("from"))
 	if fromRaw == "" {
-		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'from' query param is required (RFC3339)")
+		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'from' query param is required (YYYY-MM-DD)")
 	}
-	from, err := time.Parse(time.RFC3339, fromRaw)
+	from, err := datetime.Parse(fromRaw)
 	if err != nil {
-		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'from' must be RFC3339")
+		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'from' must be YYYY-MM-DD")
 	}
+	from = datetime.StartOfDay(from)
 
 	toRaw := strings.TrimSpace(c.Query("to"))
 	if toRaw == "" {
-		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'to' query param is required (RFC3339)")
+		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'to' query param is required (YYYY-MM-DD)")
 	}
-	to, err := time.Parse(time.RFC3339, toRaw)
+	to, err := datetime.Parse(toRaw)
 	if err != nil {
-		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'to' must be RFC3339")
+		return time.Time{}, time.Time{}, nil, errs.BadRequest("Cannot get report", "'to' must be YYYY-MM-DD")
 	}
+	to = datetime.EndOfDay(to)
 
 	var hallID *uint64
 	if hallRaw := strings.TrimSpace(c.Query("hall_id")); hallRaw != "" {

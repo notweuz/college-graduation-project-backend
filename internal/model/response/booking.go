@@ -1,13 +1,16 @@
 package response
 
-import "time"
+import (
+	"college-graduation-project-backend/internal/datetime"
+	"time"
+)
 
 type BookingFull struct {
 	ID            uint64    `json:"id"`
 	Hall          HallFull  `json:"hall"`
 	User          UserShort `json:"user"`
-	StartDateTime time.Time `json:"start_date_time"`
-	EndDateTime   time.Time `json:"end_date_time"`
+	StartDateTime string    `json:"start_date_time"`
+	EndDateTime   string    `json:"end_date_time"`
 	TotalPrice    float64   `json:"total_price"`
 	Comment       string    `json:"comment"`
 	CreatedAt     time.Time `json:"created_at"`
@@ -18,8 +21,8 @@ func NewBookingFull(id uint64, hall HallFull, user UserShort, startDateTime time
 		ID:            id,
 		Hall:          hall,
 		User:          user,
-		StartDateTime: startDateTime,
-		EndDateTime:   endDateTime,
+		StartDateTime: datetime.Format(startDateTime),
+		EndDateTime:   datetime.Format(endDateTime),
 		TotalPrice:    totalPrice,
 		Comment:       comment,
 		CreatedAt:     createdAt,

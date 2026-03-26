@@ -2,6 +2,7 @@ package service
 
 import (
 	"college-graduation-project-backend/internal/database"
+	"college-graduation-project-backend/internal/datetime"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
@@ -110,13 +111,13 @@ func (s *reportService) GetSalesReport(userID uint64, from, to time.Time, hallID
 		StudioName:  studioName,
 		Title:       "Административный отчет о продажах",
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		From:        from.Format(time.RFC3339),
-		To:          to.Format(time.RFC3339),
+		From:        datetime.Format(from),
+		To:          datetime.Format(to),
 		GroupBy:     groupBy,
 		Metrics:     metrics,
 		Filters: response.SalesReportFilters{
-			From:    from.Format(time.RFC3339),
-			To:      to.Format(time.RFC3339),
+			From:    datetime.Format(from),
+			To:      datetime.Format(to),
 			HallID:  hallID,
 			GroupBy: groupBy,
 			Metrics: metrics,
@@ -221,11 +222,11 @@ func (s *reportService) GetHallsLoadReport(userID uint64, from, to time.Time, ha
 		StudioName:  studioName,
 		Title:       "Отчет по загрузке залов",
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		From:        from.Format(time.RFC3339),
-		To:          to.Format(time.RFC3339),
+		From:        datetime.Format(from),
+		To:          datetime.Format(to),
 		Filters: response.HallsLoadFilters{
-			From:   from.Format(time.RFC3339),
-			To:     to.Format(time.RFC3339),
+			From:   datetime.Format(from),
+			To:     datetime.Format(to),
 			HallID: hallID,
 		},
 		Rows:   rows,
@@ -299,7 +300,7 @@ func (s *reportService) GetClientsReport(userID uint64, from, to time.Time, hall
 			BookingsCount: agg.bookingsCount,
 			TotalSpent:    round2(agg.totalSpent),
 			AvgCheck:      safeAvg(agg.totalSpent, agg.bookingsCount),
-			LastBookingAt: agg.lastBookingAt.UTC().Format(time.RFC3339),
+			LastBookingAt: datetime.Format(agg.lastBookingAt),
 		}
 		rows = append(rows, row)
 	}
@@ -317,11 +318,11 @@ func (s *reportService) GetClientsReport(userID uint64, from, to time.Time, hall
 		StudioName:  studioName,
 		Title:       "Отчет по клиентам",
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		From:        from.Format(time.RFC3339),
-		To:          to.Format(time.RFC3339),
+		From:        datetime.Format(from),
+		To:          datetime.Format(to),
 		Filters: response.ClientsFilters{
-			From:   from.Format(time.RFC3339),
-			To:     to.Format(time.RFC3339),
+			From:   datetime.Format(from),
+			To:     datetime.Format(to),
 			HallID: hallID,
 			Limit:  limit,
 		},
@@ -419,8 +420,8 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 
 		rows = append(rows, response.BookingsDynamicsRow{
 			Bucket:        key,
-			DateFrom:      agg.bucketStart.Format(time.RFC3339),
-			DateTo:        agg.bucketEnd.Format(time.RFC3339),
+			DateFrom:      datetime.Format(agg.bucketStart),
+			DateTo:        datetime.Format(agg.bucketEnd),
 			BookingsCount: agg.bookingsCount,
 			Revenue:       round2(agg.revenue),
 			BookedDays:    round2(agg.bookedDays),
@@ -437,12 +438,12 @@ func (s *reportService) GetBookingsDynamicsReport(userID uint64, from, to time.T
 		StudioName:  studioName,
 		Title:       "Динамика бронирований",
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		From:        from.Format(time.RFC3339),
-		To:          to.Format(time.RFC3339),
+		From:        datetime.Format(from),
+		To:          datetime.Format(to),
 		GroupBy:     groupBy,
 		Filters: response.BookingsDynamicsFilters{
-			From:    from.Format(time.RFC3339),
-			To:      to.Format(time.RFC3339),
+			From:    datetime.Format(from),
+			To:      datetime.Format(to),
 			HallID:  hallID,
 			GroupBy: groupBy,
 		},
@@ -779,8 +780,8 @@ func buildSalesResponse(aggregations map[string]*salesAggregation, from, to time
 			Bucket:     key,
 			HallID:     agg.hallID,
 			HallName:   agg.hallName,
-			DateFrom:   agg.bucketStart.Format(time.RFC3339),
-			DateTo:     agg.bucketEnd.Format(time.RFC3339),
+			DateFrom:   datetime.Format(agg.bucketStart),
+			DateTo:     datetime.Format(agg.bucketEnd),
 			BookedDays: round2(agg.bookedDays),
 			Metrics:    metricsValue,
 		}
@@ -1012,7 +1013,7 @@ func bucketKey(bucketStart time.Time, groupBy string) string {
 	case "month":
 		return bucketStart.Format("2006-01")
 	default:
-		return bucketStart.Format(time.RFC3339)
+		return datetime.Format(bucketStart)
 	}
 }
 
@@ -1083,11 +1084,14 @@ func formatDateOnly(value string) string {
 	if value == "" {
 		return "-"
 	}
+	if t, err := datetime.Parse(value); err == nil {
+		return datetime.Format(t)
+	}
 	t, err := time.Parse(time.RFC3339, value)
 	if err != nil {
 		return truncateText(value, 10)
 	}
-	return t.Format("2006-01-02")
+	return datetime.Format(t)
 }
 
 func safeAvg(sum float64, count uint64) float64 {
@@ -1135,9 +1139,9 @@ func billableDaysBetween(start, end time.Time) float64 {
 	return days
 }
 
-func formatPeriod(fromRFC3339, toRFC3339 string) string {
-	from := formatDateOnly(fromRFC3339)
-	to := formatDateOnly(toRFC3339)
+func formatPeriod(fromValue, toValue string) string {
+	from := formatDateOnly(fromValue)
+	to := formatDateOnly(toValue)
 	return from + " - " + to
 }
 

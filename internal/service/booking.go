@@ -3,6 +3,7 @@ package service
 import (
 	"college-graduation-project-backend/internal/config"
 	"college-graduation-project-backend/internal/database"
+	"college-graduation-project-backend/internal/datetime"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
@@ -43,17 +44,22 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 		return nil, errs.BadRequest("Cannot create booking", "Hall is not active")
 	}
 
-	if req.StartDateTime.After(req.EndDateTime) {
-		return nil, errs.BadRequest("Cannot create booking", "Start datetime must be before end datetime")
+	startDate, err := datetime.Parse(req.StartDateTime)
+	if err != nil {
+		return nil, errs.BadRequest("Cannot create booking", "'start_date_time' must be in YYYY-MM-DD format")
+	}
+	endDate, err := datetime.Parse(req.EndDateTime)
+	if err != nil {
+		return nil, errs.BadRequest("Cannot create booking", "'end_date_time' must be in YYYY-MM-DD format")
 	}
 
-	normalizedStart, normalizedEnd := normalizeBookingRange(req.StartDateTime, req.EndDateTime)
-	if !normalizedStart.Before(normalizedEnd) {
-		return nil, errs.BadRequest("Cannot create booking", "Booking duration must include at least one full day")
+	normalizedStart, normalizedEnd := normalizeBookingRange(startDate, endDate)
+	if normalizedStart.After(normalizedEnd) {
+		return nil, errs.BadRequest("Cannot create booking", "Start date must be before or equal to end date")
 	}
 
-	if normalizedStart.Before(time.Now()) {
-		return nil, errs.BadRequest("Cannot create booking", "Start datetime cannot be in the past")
+	if normalizedStart.Before(datetime.StartOfDay(time.Now())) {
+		return nil, errs.BadRequest("Cannot create booking", "Start date cannot be in the past")
 	}
 
 	calculatedPrice, err := b.CalculatePrice(req.HallID, normalizedStart, normalizedEnd)
@@ -81,13 +87,7 @@ func (b *bookingService) Create(userID uint64, req *request.BookingCreate) (*mod
 }
 
 func normalizeBookingRange(start, end time.Time) (time.Time, time.Time) {
-	loc := bookingCalendarLocation()
-	normalizedStart := startOfDayInLocation(start, loc)
-	normalizedEnd := startOfDayInLocation(end, loc)
-	if !isStartOfDayInLocation(end, loc) {
-		normalizedEnd = normalizedEnd.Add(24 * time.Hour)
-	}
-	return normalizedStart, normalizedEnd
+	return datetime.StartOfDay(start), datetime.EndOfDay(end)
 }
 
 func bookingCalendarLocation() *time.Location {
@@ -209,8 +209,7 @@ func (b *bookingService) CalculatePrice(hallID uint64, from, to time.Time) (*res
 		return nil, err
 	}
 	normalizedStart, normalizedEnd := normalizeBookingRange(from, to)
-	duration := normalizedEnd.Sub(normalizedStart)
-	days := duration.Hours() / 24
+	days := billableDaysBetween(normalizedStart, normalizedEnd)
 	defaultPrice := hall.PricePerDay * days
 	discount := 0.0
 	newPrice := 0.0

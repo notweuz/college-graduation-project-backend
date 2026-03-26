@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/datetime"
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model/request"
@@ -81,12 +82,12 @@ func (h *BookingHandler) Create(c fiber.Ctx) error {
 
 // GetAllFromUser godoc
 // @Summary List my bookings
-// @Description Возвращает бронирования текущего пользователя с необязательным фильтром по периоду (RFC3339).
+// @Description Возвращает бронирования текущего пользователя с необязательным фильтром по периоду (YYYY-MM-DD).
 // @Tags bookings
 // @Produce json
 // @Security BearerAuth
-// @Param from query string false "Дата/время начала (RFC3339)"
-// @Param to query string false "Дата/время конца (RFC3339)"
+// @Param from query string false "Дата начала (YYYY-MM-DD)"
+// @Param to query string false "Дата конца (YYYY-MM-DD)"
 // @Success 200 {array} response.BookingFull
 // @Failure 400 {object} BadRequestErrorResponse
 // @Failure 401 {object} UnauthorizedErrorResponse
@@ -101,18 +102,20 @@ func (h *BookingHandler) GetAllFromUser(c fiber.Ctx) error {
 	var from, to *time.Time
 
 	if s := c.Query("from"); s != "" {
-		t, err := time.Parse(time.RFC3339, s)
+		t, err := datetime.Parse(s)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid 'from' date format, use RFC3339")
+			return fiber.NewError(fiber.StatusBadRequest, "invalid 'from' date format, use YYYY-MM-DD")
 		}
+		t = datetime.StartOfDay(t)
 		from = &t
 	}
 
 	if s := c.Query("to"); s != "" {
-		t, err := time.Parse(time.RFC3339, s)
+		t, err := datetime.Parse(s)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid 'to' date format, use RFC3339")
+			return fiber.NewError(fiber.StatusBadRequest, "invalid 'to' date format, use YYYY-MM-DD")
 		}
+		t = datetime.EndOfDay(t)
 		to = &t
 	}
 
@@ -190,8 +193,8 @@ func (h *BookingHandler) DeleteByAuthor(c fiber.Ctx) error {
 // @Tags admin-bookings
 // @Produce json
 // @Security BearerAuth
-// @Param from query string false "Дата/время начала (RFC3339)"
-// @Param to query string false "Дата/время конца (RFC3339)"
+// @Param from query string false "Дата начала (YYYY-MM-DD)"
+// @Param to query string false "Дата конца (YYYY-MM-DD)"
 // @Param hall_id query int false "ID зала"
 // @Param user_id query int false "ID пользователя"
 // @Success 200 {array} response.BookingFull
@@ -209,18 +212,20 @@ func (h *BookingHandler) GetAll(c fiber.Ctx) error {
 	var from, to *time.Time
 
 	if s := c.Query("from"); s != "" {
-		t, err := time.Parse(time.RFC3339, s)
+		t, err := datetime.Parse(s)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid 'from' date format, use RFC3339")
+			return fiber.NewError(fiber.StatusBadRequest, "invalid 'from' date format, use YYYY-MM-DD")
 		}
+		t = datetime.StartOfDay(t)
 		from = &t
 	}
 
 	if s := c.Query("to"); s != "" {
-		t, err := time.Parse(time.RFC3339, s)
+		t, err := datetime.Parse(s)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid 'to' date format, use RFC3339")
+			return fiber.NewError(fiber.StatusBadRequest, "invalid 'to' date format, use YYYY-MM-DD")
 		}
+		t = datetime.EndOfDay(t)
 		to = &t
 	}
 	if s := c.Query("hall_id"); s != "" {
@@ -315,21 +320,23 @@ func (h *BookingHandler) CalculatePrice(c fiber.Ctx) error {
 	var err error
 
 	if dateStr != "" {
-		from, err = time.Parse("2006-01-02", dateStr)
+		from, err = datetime.Parse(dateStr)
 		if err != nil {
 			return errs.BadRequest("Invalid 'date' format, use YYYY-MM-DD", err.Error())
 		}
-		to = from.Add(24 * time.Hour)
+		from = datetime.StartOfDay(from)
+		to = datetime.EndOfDay(from)
 	} else if fromStr != "" && toStr != "" {
-		from, err = time.Parse("2006-01-02", fromStr)
+		from, err = datetime.Parse(fromStr)
 		if err != nil {
 			return errs.BadRequest("Invalid 'from' format, use YYYY-MM-DD", err.Error())
 		}
-		to, err = time.Parse("2006-01-02", toStr)
+		to, err = datetime.Parse(toStr)
 		if err != nil {
 			return errs.BadRequest("Invalid 'to' format, use YYYY-MM-DD", err.Error())
 		}
-		to = to.Add(24 * time.Hour)
+		from = datetime.StartOfDay(from)
+		to = datetime.EndOfDay(to)
 	} else {
 		return errs.BadRequest("Invalid parameters", "provide either 'date' or both 'from' and 'to' parameters")
 	}
