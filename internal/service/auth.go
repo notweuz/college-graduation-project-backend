@@ -2,9 +2,9 @@ package service
 
 import (
 	"college-graduation-project-backend/internal/config"
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/request"
-	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,7 +23,7 @@ func NewAuthService(userService UserService) AuthService {
 func (s *authService) Register(req *request.Register) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return "", errs.InternalServerError("Cannot register user", "failed to hash password")
 	}
 
 	email := req.Email
@@ -47,17 +47,21 @@ func (s *authService) Register(req *request.Register) (string, error) {
 
 	log.Info().Uint64("id", user.ID).Str("email", *user.Email).Msg("User successfully registered")
 
-	return token.SignedString([]byte(config.Cfg.JwtSecret))
+	signedToken, err := token.SignedString([]byte(config.Cfg.JwtSecret))
+	if err != nil {
+		return "", errs.InternalServerError("Cannot register user", "failed to generate access token")
+	}
+	return signedToken, nil
 }
 
 func (s *authService) Login(req *request.Login) (string, error) {
 	user, err := s.userService.FindByEmail(req.Email)
 	if err != nil {
-		return "", errors.New("invalid credentials")
+		return "", errs.Unauthorized("Authentication failed", "invalid email or password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return "", errors.New("invalid credentials")
+		return "", errs.Unauthorized("Authentication failed", "invalid email or password")
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -67,5 +71,10 @@ func (s *authService) Login(req *request.Login) (string, error) {
 	})
 	log.Info().Uint64("id", user.ID).Str("email", *user.Email).Msg("User successfully logged in")
 
-	return token.SignedString([]byte(config.Cfg.JwtSecret))
+	signedToken, err := token.SignedString([]byte(config.Cfg.JwtSecret))
+	if err != nil {
+		return "", errs.InternalServerError("Cannot login", "failed to generate access token")
+	}
+
+	return signedToken, nil
 }

@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model/request"
 	"college-graduation-project-backend/internal/model/response"
 	"college-graduation-project-backend/internal/service"
 	"college-graduation-project-backend/internal/validation"
+	"fmt"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -32,7 +34,10 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 func (h *AuthHandler) Register(c fiber.Ctx) error {
 	var req request.Register
 	if err := c.Bind().Body(&req); err != nil {
-		return err
+		return errs.BadRequest(
+			"Invalid request body",
+			fmt.Sprintf("body must be valid JSON with fields: email, password, full_name (%s)", err.Error()),
+		)
 	}
 	if err := validation.Validate(&req); err != nil {
 		return err
@@ -59,7 +64,10 @@ func (h *AuthHandler) Register(c fiber.Ctx) error {
 func (h *AuthHandler) Login(c fiber.Ctx) error {
 	var req request.Login
 	if err := c.Bind().Body(&req); err != nil {
-		return err
+		return errs.BadRequest(
+			"Invalid request body",
+			fmt.Sprintf("body must be valid JSON with fields: email, password (%s)", err.Error()),
+		)
 	}
 	if err := validation.Validate(&req); err != nil {
 		return err
