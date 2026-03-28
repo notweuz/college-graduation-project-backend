@@ -51,6 +51,35 @@ func (h *UserHandler) GetProfile(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(userShort)
 }
 
+// GetPublicProfile godoc
+// @Summary Get user public profile
+// @Description Возвращает краткую публичную информацию о пользователе: id, full_name и avatar.
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID пользователя"
+// @Success 200 {object} response.UserPublicShort
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/users/{id} [get]
+func (h *UserHandler) GetPublicProfile(c fiber.Ctx) error {
+	id := fiber.Params[uint64](c, "id")
+
+	user, err := h.userService.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	avatarPath, err := h.imageService.GetUserAvatar(id)
+	if err != nil {
+		return err
+	}
+
+	userPublic := response.NewUserPublicShort(user.ID, user.FullName, avatarPath)
+	return c.Status(fiber.StatusOK).JSON(userPublic)
+}
+
 // UpdateProfile godoc
 // @Summary Update current user profile
 // @Description Обновляет профиль текущего авторизованного пользователя.

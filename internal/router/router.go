@@ -62,6 +62,7 @@ func (r *Router) setupUserRoutes(api fiber.Router) {
 	users.Get("/me", r.userHandler.GetProfile)
 	users.Get("/me/role", r.userHandler.GetRole)
 	users.Get("/me/avatar", r.userHandler.GetAvatar)
+	users.Get("/:id", r.userHandler.GetPublicProfile)
 	users.Patch("/me", r.userHandler.UpdateProfile)
 	users.Put("/me/avatar", r.userHandler.UploadAvatar)
 	users.Delete("/me/avatar", r.userHandler.DeleteAvatar)
