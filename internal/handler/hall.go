@@ -313,7 +313,7 @@ func (h *HallHandler) UploadImage(c fiber.Ctx) error {
 	imagePath := fmt.Sprintf("/api/images/%s", filename)
 	err = h.imageService.UploadHallImage(userID, id, imagePath)
 	if err != nil {
-		os.Remove(filePath)
+		err = os.Remove(filePath)
 		return err
 	}
 
