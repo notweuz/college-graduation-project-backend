@@ -6,6 +6,7 @@ import (
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/request"
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -37,9 +38,16 @@ func (r *reviewService) Create(userID, bookingID uint64, req *request.ReviewCrea
 		return nil, errs.Forbidden("Cannot create review", "This booking does not belong to you")
 	}
 
-	existingReview, err := r.database.FindByUserIDAndBookingID(userID, bookingID)
+	if booking.EndDateTime.After(time.Now()) {
+		return nil, errs.BadRequest("Cannot create review", "You can review only finished bookings")
+	}
+
+	existingReview, err := r.database.FindByBookingID(bookingID)
 	if err == nil && existingReview != nil {
 		return nil, errs.Conflict("Cannot create review", "You have already reviewed this booking")
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errs.InternalServerError("Cannot create review", "internal server error")
 	}
 
 	review := model.NewReview(0, *booking, *user, req.Rating, req.Comment)
@@ -50,6 +58,23 @@ func (r *reviewService) Create(userID, bookingID uint64, req *request.ReviewCrea
 		}
 		return nil, errs.InternalServerError("Cannot create review", "internal server error")
 	}
+	return review, nil
+}
+
+func (r *reviewService) GetByBookingID(userID, bookingID uint64) (*model.Review, error) {
+	booking, err := r.bookingService.FindByID(userID, bookingID)
+	if err != nil {
+		return nil, err
+	}
+
+	review, err := r.database.FindByBookingID(booking.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.NotFound("Review not found", "Review for this booking does not exist")
+		}
+		return nil, errs.InternalServerError("Cannot get review", "internal server error")
+	}
+
 	return review, nil
 }
 
