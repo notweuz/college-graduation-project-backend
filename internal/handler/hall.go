@@ -18,11 +18,12 @@ import (
 )
 
 type HallHandler struct {
-	hallService service.HallService
+	hallService  service.HallService
+	imageService service.ImageService
 }
 
-func NewHallHandler(hallService service.HallService) *HallHandler {
-	return &HallHandler{hallService: hallService}
+func NewHallHandler(hallService service.HallService, imageService service.ImageService) *HallHandler {
+	return &HallHandler{hallService: hallService, imageService: imageService}
 }
 
 // GetAllHalls godoc
@@ -43,7 +44,7 @@ func (h *HallHandler) GetAllHalls(c fiber.Ctx) error {
 			return err
 		}
 		for _, hall := range hallsFull {
-			images, err := h.hallService.GetHallImages(hall.ID)
+			images, err := h.imageService.GetHallImages(hall.ID)
 			if err != nil {
 				return err
 			}
@@ -55,7 +56,7 @@ func (h *HallHandler) GetAllHalls(c fiber.Ctx) error {
 			return err
 		}
 		for _, hall := range hallsFull {
-			images, err := h.hallService.GetHallImages(hall.ID)
+			images, err := h.imageService.GetHallImages(hall.ID)
 			if err != nil {
 				return err
 			}
@@ -82,7 +83,7 @@ func (h *HallHandler) GetHallById(c fiber.Ctx) error {
 		return err
 	}
 
-	images, err := h.hallService.GetHallImages(hall.ID)
+	images, err := h.imageService.GetHallImages(hall.ID)
 	if err != nil {
 		return err
 	}
@@ -122,7 +123,7 @@ func (h *HallHandler) Create(c fiber.Ctx) error {
 		return err
 	}
 
-	images, err := h.hallService.GetHallImages(hall.ID)
+	images, err := h.imageService.GetHallImages(hall.ID)
 	if err != nil {
 		return err
 	}
@@ -165,7 +166,7 @@ func (h *HallHandler) Update(c fiber.Ctx) error {
 		return err
 	}
 
-	images, err := h.hallService.GetHallImages(hall.ID)
+	images, err := h.imageService.GetHallImages(hall.ID)
 	if err != nil {
 		return err
 	}
@@ -297,7 +298,7 @@ func (h *HallHandler) UploadImage(c fiber.Ctx) error {
 		return errs.BadRequest("File too large", "Maximum file size is 10MB")
 	}
 
-	uploadsDir := "uploads/halls"
+	uploadsDir := "uploads/images"
 	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 		return errs.InternalServerError("Cannot create upload directory", err.Error())
 	}
@@ -310,7 +311,7 @@ func (h *HallHandler) UploadImage(c fiber.Ctx) error {
 	}
 
 	imagePath := fmt.Sprintf("/api/images/%s", filename)
-	err = h.hallService.UploadImage(userID, id, imagePath)
+	err = h.imageService.UploadHallImage(userID, id, imagePath)
 	if err != nil {
 		os.Remove(filePath)
 		return err
@@ -333,10 +334,14 @@ func (h *HallHandler) UploadImage(c fiber.Ctx) error {
 // @Router /api/images/{filename} [get]
 func (h *HallHandler) ServeImage(c fiber.Ctx) error {
 	filename := c.Params("filename")
-	filePath := filepath.Join("uploads/halls", filename)
+	filePath := filepath.Join("uploads/images", filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return errs.NotFound("Image not found", "Image file does not exist")
+		legacyPath := filepath.Join("uploads/halls", filename)
+		if _, legacyErr := os.Stat(legacyPath); os.IsNotExist(legacyErr) {
+			return errs.NotFound("Image not found", "Image file does not exist")
+		}
+		return c.SendFile(legacyPath)
 	}
 
 	return c.SendFile(filePath)

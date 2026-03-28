@@ -1,20 +1,28 @@
 package handler
 
 import (
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/middleware"
 	"college-graduation-project-backend/internal/model/request"
 	"college-graduation-project-backend/internal/model/response"
 	"college-graduation-project-backend/internal/service"
+	"fmt"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
 
 type UserHandler struct {
-	userService service.UserService
+	userService  service.UserService
+	imageService service.ImageService
 }
 
-func NewUserHandler(userService service.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewUserHandler(userService service.UserService, imageService service.ImageService) *UserHandler {
+	return &UserHandler{userService: userService, imageService: imageService}
 }
 
 // GetProfile godoc
@@ -95,4 +103,134 @@ func (h *UserHandler) GetRole(c fiber.Ctx) error {
 	}
 	userRole := response.Role{Role: user.Role.String()}
 	return c.Status(fiber.StatusOK).JSON(userRole)
+}
+
+// UploadAvatar godoc
+// @Summary Upload current user avatar
+// @Description Загружает/обновляет аватар текущего пользователя (jpg/jpeg/png/gif/webp, до 10MB).
+// @Tags users
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param image formData file true "Файл изображения"
+// @Success 201 {object} UploadImageResponse
+// @Failure 400 {object} BadRequestErrorResponse
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/users/me/avatar [put]
+func (h *UserHandler) UploadAvatar(c fiber.Ctx) error {
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		return errs.BadRequest("Invalid file", "No file uploaded")
+	}
+
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" && ext != ".webp" {
+		return errs.BadRequest("Invalid file type", "Only jpg, jpeg, png, gif, webp files are allowed")
+	}
+
+	if file.Size > 10*1024*1024 {
+		return errs.BadRequest("File too large", "Maximum file size is 10MB")
+	}
+
+	uploadsDir := "uploads/images"
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		return errs.InternalServerError("Cannot create upload directory", err.Error())
+	}
+
+	filename := fmt.Sprintf("user_%d_%d%s", userID, time.Now().Unix(), ext)
+	filePath := filepath.Join(uploadsDir, filename)
+	if err := c.SaveFile(file, filePath); err != nil {
+		return errs.InternalServerError("Cannot save file", err.Error())
+	}
+
+	imagePath := fmt.Sprintf("/api/images/%s", filename)
+	if err := h.imageService.SetUserAvatar(userID, imagePath); err != nil {
+		_ = os.Remove(filePath)
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"image_path": imagePath,
+	})
+}
+
+// GetAvatar godoc
+// @Summary Get current user avatar
+// @Description Возвращает путь к аватару текущего пользователя.
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} UploadImageResponse
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/users/me/avatar [get]
+func (h *UserHandler) GetAvatar(c fiber.Ctx) error {
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+
+	avatarPath, err := h.imageService.GetUserAvatar(userID)
+	if err != nil {
+		return err
+	}
+
+	if avatarPath == nil {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{"image_path": nil})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"image_path": *avatarPath,
+	})
+}
+
+// DeleteAvatar godoc
+// @Summary Delete current user avatar
+// @Description Удаляет аватар текущего пользователя.
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Success 204 {string} string "No Content"
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/users/me/avatar [delete]
+func (h *UserHandler) DeleteAvatar(c fiber.Ctx) error {
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+
+	avatarPath, err := h.imageService.GetUserAvatar(userID)
+	if err != nil {
+		return err
+	}
+
+	if err := h.imageService.DeleteUserAvatar(userID); err != nil {
+		return err
+	}
+
+	if avatarPath != nil {
+		if filename, extractErr := imageFilenameFromPath(*avatarPath); extractErr == nil && filename != "" {
+			_ = os.Remove(filepath.Join("uploads/images", filename))
+		}
+	}
+
+	return c.Status(fiber.StatusNoContent).JSON(nil)
+}
+
+func imageFilenameFromPath(imagePath string) (string, error) {
+	parsed, err := url.Parse(imagePath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Base(parsed.Path), nil
 }

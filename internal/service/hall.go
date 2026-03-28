@@ -15,18 +15,16 @@ import (
 )
 
 type hallService struct {
-	database          database.HallDatabase
-	bookingDatabase   database.BookingDatabase
-	userService       UserService
-	hallImageDatabase database.HallImageDatabase
+	database        database.HallDatabase
+	bookingDatabase database.BookingDatabase
+	userService     UserService
 }
 
-func NewHallService(database database.HallDatabase, bookingDatabase database.BookingDatabase, userService UserService, hallImageDatabase database.HallImageDatabase) HallService {
+func NewHallService(database database.HallDatabase, bookingDatabase database.BookingDatabase, userService UserService) HallService {
 	return &hallService{
-		database:          database,
-		bookingDatabase:   bookingDatabase,
-		userService:       userService,
-		hallImageDatabase: hallImageDatabase,
+		database:        database,
+		bookingDatabase: bookingDatabase,
+		userService:     userService,
 	}
 }
 
@@ -192,51 +190,4 @@ func (s *hallService) GetAvailability(hallID uint64, from, to time.Time) ([]resp
 	}
 
 	return availability, nil
-}
-
-func (s *hallService) UploadImage(userID, hallID uint64, imagePath string) error {
-	user, err := s.userService.FindByID(userID)
-	if err != nil {
-		return err
-	}
-	if user.Role != enum.RoleAdmin {
-		log.Warn().Uint64("id", userID).Msg("User is not admin")
-		return errs.Forbidden("Forbidden", "user is not admin")
-	}
-
-	_, err = s.FindByID(hallID)
-	if err != nil {
-		return err
-	}
-
-	hallImage := model.NewHallImage(0, hallID, imagePath)
-	err = s.hallImageDatabase.Create(hallImage)
-	if err != nil {
-		log.Error().Err(err).Uint64("hallID", hallID).Msg("Cannot upload hall image")
-		return errs.InternalServerError("Cannot upload hall image", "internal server error")
-	}
-
-	log.Info().Uint64("hallID", hallID).Str("path", imagePath).Msg("Hall image successfully uploaded")
-	return nil
-}
-
-func (s *hallService) GetHallImages(hallID uint64) ([]string, error) {
-	_, err := s.FindByID(hallID)
-	if err != nil {
-		return nil, err
-	}
-
-	images, err := s.hallImageDatabase.FindByHallID(hallID)
-	if err != nil {
-		log.Error().Err(err).Uint64("hallID", hallID).Msg("Cannot get hall images")
-		return nil, errs.InternalServerError("Cannot get hall images", "internal server error")
-	}
-
-	var imagePaths []string
-	for _, image := range images {
-		imagePaths = append(imagePaths, image.Path)
-	}
-
-	log.Info().Uint64("hallID", hallID).Int("count", len(imagePaths)).Msg("Hall images successfully retrieved")
-	return imagePaths, nil
 }

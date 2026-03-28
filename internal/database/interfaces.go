@@ -34,9 +34,14 @@ type ReviewDatabase interface {
 	Delete(id uint64) error
 }
 
-type HallImageDatabase interface {
-	Create(hallImage *model.HallImage) error
-	FindByHallID(hallID uint64) ([]model.HallImage, error)
+type ImageDatabase interface {
+	Create(image *model.Image) error
+	GetByID(id uint64) (*model.Image, error)
+	FindByHallID(hallID uint64) ([]model.Image, error)
+	GetByUserID(userID uint64) (*model.Image, error)
+	AttachToHall(hallID, imageID uint64) error
+	SetUserImage(userID, imageID uint64) error
+	RemoveUserImage(userID uint64) error
 	Delete(id uint64) error
 }
 
