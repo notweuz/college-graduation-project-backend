@@ -52,6 +52,7 @@ type BookingService interface {
 
 type ReviewService interface {
 	Create(userID, bookingID uint64, req *request.ReviewCreate) (*model.Review, error)
+	GetByBookingID(userID, bookingID uint64) (*model.Review, error)
 	GetByHallID(hallID uint64) ([]model.Review, error)
 	GetAllWithFilters(hallID, minRating *uint64) ([]model.Review, error)
 	Update(userID, reviewID uint64, req *request.ReviewCreate) (*model.Review, error)

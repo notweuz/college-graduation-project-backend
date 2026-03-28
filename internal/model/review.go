@@ -4,7 +4,7 @@ import "time"
 
 type Review struct {
 	ID        uint64  `gorm:"primaryKey;autoIncrement"`
-	BookingID uint64  `gorm:"not null"`
+	BookingID uint64  `gorm:"not null;uniqueIndex:idx_reviews_booking_id"`
 	Booking   Booking `gorm:"foreignKey:BookingID;references:id"`
 	UserID    uint64  `gorm:"not null"`
 	User      User    `gorm:"foreignKey:UserID;references:id"`

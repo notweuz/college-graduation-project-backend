@@ -95,6 +95,7 @@ func (r *Router) setupBookingRoutes(api fiber.Router) {
 	bookings.Get("/my", r.bookingHandler.GetAllFromUser)
 	bookings.Get("/:id", r.bookingHandler.GetByID)
 	bookings.Get("/:hall_id/calculate-price", r.bookingHandler.CalculatePrice)
+	bookings.Get("/:id/review", r.reviewHandler.GetByBookingID)
 	bookings.Post("/:id/review", r.reviewHandler.Create)
 	bookings.Delete("/:id", r.bookingHandler.DeleteByAuthor)
 }

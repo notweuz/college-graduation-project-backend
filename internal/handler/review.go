@@ -60,6 +60,36 @@ func (h *ReviewHandler) Create(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(reviewFull)
 }
 
+// GetByBookingID godoc
+// @Summary Get current user's review by booking ID
+// @Description Возвращает отзыв текущего пользователя для конкретного бронирования.
+// @Tags reviews
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID бронирования"
+// @Success 200 {object} response.ReviewShort
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 403 {object} ForbiddenErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/bookings/{id}/review [get]
+func (h *ReviewHandler) GetByBookingID(c fiber.Ctx) error {
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+
+	bookingID := fiber.Params[uint64](c, "id")
+	review, err := h.reviewService.GetByBookingID(userID, bookingID)
+	if err != nil {
+		return err
+	}
+
+	userShort := response.NewUserShort(review.User.ID, review.User.Email, review.User.FullName)
+	reviewShort := response.NewReviewShort(review.ID, *userShort, review.Rating, review.Comment, review.CreatedAt)
+	return c.Status(fiber.StatusOK).JSON(reviewShort)
+}
+
 // Update godoc
 // @Summary Update review
 // @Description Обновляет отзыв текущего пользователя.

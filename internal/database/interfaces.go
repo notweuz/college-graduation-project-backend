@@ -28,6 +28,7 @@ type ReviewDatabase interface {
 	FindByID(id uint64) (*model.Review, error)
 	FindAll() ([]model.Review, error)
 	FindByHallID(hallID uint64) ([]model.Review, error)
+	FindByBookingID(bookingID uint64) (*model.Review, error)
 	FindByUserIDAndBookingID(userID, bookingID uint64) (*model.Review, error)
 	FindAllWithFilters(hallID, minRating *uint64) ([]model.Review, error)
 	Update(review *model.Review) error

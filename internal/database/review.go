@@ -50,6 +50,14 @@ func (d *reviewDatabase) FindByUserIDAndBookingID(userID, bookingID uint64) (*mo
 	return &review, nil
 }
 
+func (d *reviewDatabase) FindByBookingID(bookingID uint64) (*model.Review, error) {
+	var review model.Review
+	if err := d.db.Preload("Booking").Preload("User").Where("booking_id = ?", bookingID).First(&review).Error; err != nil {
+		return nil, err
+	}
+	return &review, nil
+}
+
 func (d *reviewDatabase) FindAllWithFilters(hallID, minRating *uint64) ([]model.Review, error) {
 	var reviews []model.Review
 	query := d.db.Preload("User").Preload("Booking.Hall").Joins("JOIN bookings ON bookings.id = reviews.booking_id")
