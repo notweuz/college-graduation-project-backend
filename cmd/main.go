@@ -14,16 +14,9 @@ package main
 import (
 	"college-graduation-project-backend/internal"
 	"college-graduation-project-backend/internal/config"
-	"college-graduation-project-backend/internal/database"
-	"college-graduation-project-backend/internal/handler"
 	"college-graduation-project-backend/internal/logger"
-	"college-graduation-project-backend/internal/middleware"
-	"college-graduation-project-backend/internal/router"
-	"college-graduation-project-backend/internal/service"
 	"fmt"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,48 +27,15 @@ func main() {
 		log.Panic().Err(err).Msg("Error loading config")
 	}
 
-	err = internal.SetupDatabase()
+	db, err := internal.SetupDatabase()
 	if err != nil {
 		log.Panic().Err(err).Msg("Error loading database")
 	}
 
-	userDatabase := database.NewUserDatabase(internal.Database)
-	hallDatabase := database.NewHallDatabase(internal.Database)
-	imageDatabase := database.NewImageDatabase(internal.Database)
-	reviewDatabase := database.NewReviewDatabase(internal.Database)
-	bookingDatabase := database.NewBookingDatabase(internal.Database)
-	reportDatabase := database.NewReportDatabase(internal.Database)
-	userAgreementDatabase := database.NewUserAgreementDatabase(internal.Database)
-
-	userService := service.NewUserService(userDatabase)
-	imageService := service.NewImageService(imageDatabase, userDatabase, hallDatabase)
-	authService := service.NewAuthService(userService)
-	hallService := service.NewHallService(hallDatabase, bookingDatabase, userService)
-	bookingService := service.NewBookingService(bookingDatabase, userService, hallService)
-	reviewService := service.NewReviewService(reviewDatabase, bookingService, userService)
-	reportService := service.NewReportService(reportDatabase, userService)
-	userAgreementService := service.NewUserAgreementService(userAgreementDatabase, userService)
-
-	authHandler := handler.NewAuthHandler(authService)
-	userHandler := handler.NewUserHandler(userService, imageService)
-	hallHandler := handler.NewHallHandler(hallService, imageService)
-	bookingHandler := handler.NewBookingHandler(bookingService)
-	reviewHandler := handler.NewReviewHandler(reviewService)
-	reportHandler := handler.NewReportHandler(reportService)
-	userAgreementHandler := handler.NewUserAgreementHandler(userAgreementService)
-
-	app := fiber.New(fiber.Config{
-		ErrorHandler: handler.ErrorHandler,
-	})
-	app.Use(middleware.Logging())
-	app.Use(cors.New())
-
-	log.Info().Msg("Loading routers")
-	r := router.NewRouter(app, authHandler, userHandler, hallHandler, bookingHandler, reviewHandler, reportHandler, userAgreementHandler)
-	r.Setup()
+	app := internal.NewApp(db)
 
 	log.Info().Int("port", config.Cfg.AppPort).Msg("Starting server")
-	err = app.Listen(fmt.Sprintf(":%d", config.Cfg.AppPort))
+	err = app.Fiber.Listen(fmt.Sprintf(":%d", config.Cfg.AppPort))
 	if err != nil {
 		log.Panic().Err(err).Msg("Error starting server")
 	}

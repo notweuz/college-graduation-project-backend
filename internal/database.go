@@ -10,15 +10,13 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var Database *gorm.DB
-
-func SetupDatabase() error {
+func SetupDatabase() (*gorm.DB, error) {
 	dsn := config.Cfg.DatabaseDSN
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.Info().Msg("Connected to database")
 
@@ -37,6 +35,5 @@ func SetupDatabase() error {
 	}
 
 	log.Info().Msg("Migrated database successfully")
-	Database = db
-	return nil
+	return db, err
 }
