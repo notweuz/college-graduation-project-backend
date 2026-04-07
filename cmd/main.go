@@ -15,7 +15,10 @@ import (
 	"college-graduation-project-backend/internal"
 	"college-graduation-project-backend/internal/config"
 	"college-graduation-project-backend/internal/logger"
-	"fmt"
+	"context"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -35,8 +38,17 @@ func main() {
 	app := internal.NewApp(db)
 
 	log.Info().Int("port", config.Cfg.AppPort).Msg("Starting server")
-	err = app.Fiber.Listen(fmt.Sprintf(":%d", config.Cfg.AppPort))
-	if err != nil {
-		log.Panic().Err(err).Msg("Error starting server")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+
+	<-quit
+	shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err = app.Fiber.ShutdownWithContext(shutdownContext); err != nil {
+		log.Error().Err(err).Msg("Error shutting down server")
+	} else {
+		log.Info().Msg("Server shutdown successfully")
 	}
 }
