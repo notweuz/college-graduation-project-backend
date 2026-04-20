@@ -16,6 +16,7 @@ import (
 	"college-graduation-project-backend/internal/config"
 	"college-graduation-project-backend/internal/logger"
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
@@ -38,6 +39,12 @@ func main() {
 	app := internal.NewApp(db)
 
 	log.Info().Int("port", config.Cfg.AppPort).Msg("Starting server")
+
+	go func() {
+		if err := app.Fiber.Listen(fmt.Sprintf(":%d", config.Cfg.AppPort)); err != nil {
+			log.Error().Err(err).Msg("Server error")
+		}
+	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
