@@ -13,11 +13,11 @@ import (
 )
 
 func TestUserService_FindByID(t *testing.T) {
-	mockUserDatabase := mocks.NewMockUserDatabase(t)
+	mockUserDB := mocks.NewMockUserDatabase(t)
 
 	exampleEmail := "test@example.com" // i dunno why I made email as pointer
 	exampleFullName := "Anton"
-	mockUserDatabase.On("FindByID", uint64(1)).Return(&model.User{
+	mockUserDB.On("FindByID", uint64(1)).Return(&model.User{
 		ID:       1,
 		Email:    &exampleEmail,
 		FullName: &exampleFullName,
@@ -26,20 +26,20 @@ func TestUserService_FindByID(t *testing.T) {
 
 	exampleEmail2 := "nastya@yandex.ru"
 	exampleFullName2 := "Nastya"
-	mockUserDatabase.On("FindByID", uint64(2)).Return(&model.User{
+	mockUserDB.On("FindByID", uint64(2)).Return(&model.User{
 		ID:       2,
 		Email:    &exampleEmail2,
 		FullName: &exampleFullName2,
 		Role:     enum.RoleClient,
 	}, nil).Once()
 
-	mockUserDatabase.On("FindByID", mock.AnythingOfType("uint64")).
+	mockUserDB.On("FindByID", mock.AnythingOfType("uint64")).
 		Return(nil, gorm.ErrRecordNotFound).
 		Maybe()
 
-	userServiceTest := NewUserService(mockUserDatabase)
+	userSvcTest := NewUserService(mockUserDB)
 
-	user, err := userServiceTest.FindByID(1)
+	user, err := userSvcTest.FindByID(1)
 
 	assert.NoError(t, err)
 	assert.Equal(t, user.ID, uint64(1))
@@ -47,7 +47,7 @@ func TestUserService_FindByID(t *testing.T) {
 	assert.Equal(t, *user.FullName, exampleFullName)
 	assert.Equal(t, user.Role, enum.RoleAdmin)
 
-	user, err = userServiceTest.FindByID(2)
+	user, err = userSvcTest.FindByID(2)
 
 	assert.NoError(t, err)
 	assert.Equal(t, user.ID, uint64(2))
@@ -55,7 +55,7 @@ func TestUserService_FindByID(t *testing.T) {
 	assert.Equal(t, *user.FullName, exampleFullName2)
 	assert.Equal(t, user.Role, enum.RoleClient)
 
-	user, err = userServiceTest.FindByID(3)
+	user, err = userSvcTest.FindByID(3)
 
 	if err != nil {
 		assert.Contains(t, err.Error(), "Cannot find user")
@@ -64,7 +64,7 @@ func TestUserService_FindByID(t *testing.T) {
 }
 
 func TestUserService_UpdateProfile(t *testing.T) {
-	mockUserDatabase := mocks.NewMockUserDatabase(t)
+	mockUserDB := mocks.NewMockUserDatabase(t)
 
 	id := uint64(1)
 	email := "user@example.com"
@@ -75,10 +75,10 @@ func TestUserService_UpdateProfile(t *testing.T) {
 		FullName: &fullName,
 		Role:     enum.RoleAdmin,
 	}
-	mockUserDatabase.On("FindByID", uint64(1)).Return(mockUser, nil)
-	mockUserDatabase.On("Update", mock.AnythingOfType("*model.User")).Return(nil)
+	mockUserDB.On("FindByID", uint64(1)).Return(mockUser, nil)
+	mockUserDB.On("Update", mock.AnythingOfType("*model.User")).Return(nil)
 
-	userServiceTest := NewUserService(mockUserDatabase)
+	userSvcTest := NewUserService(mockUserDB)
 
 	newMail := "user2@example.com"
 	newFullName := "Ayanami Rei"
@@ -86,7 +86,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 		Email:    &newMail,
 		FullName: &newFullName,
 	}
-	mockUser, err := userServiceTest.UpdateProfile(uint64(1), updateProfile)
+	mockUser, err := userSvcTest.UpdateProfile(uint64(1), updateProfile)
 
 	assert.NoError(t, err)
 	assert.Equal(t, mockUser.ID, uint64(1))
@@ -96,7 +96,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 }
 
 func TestUserService_FindByEmail(t *testing.T) {
-	mockUserDatabase := mocks.NewMockUserDatabase(t)
+	mockUserDB := mocks.NewMockUserDatabase(t)
 
 	email := "xyz@xyz.xyz"
 	fullName := "Test user"
@@ -107,19 +107,19 @@ func TestUserService_FindByEmail(t *testing.T) {
 		FullName:     &fullName,
 	}
 
-	mockUserDatabase.On("FindByEmail", "xyz@xyz.xyz").Return(mockUser, nil)
-	mockUserDatabase.On("FindByEmail", mock.AnythingOfType("string")).Return(nil, gorm.ErrRecordNotFound)
+	mockUserDB.On("FindByEmail", "xyz@xyz.xyz").Return(mockUser, nil)
+	mockUserDB.On("FindByEmail", mock.AnythingOfType("string")).Return(nil, gorm.ErrRecordNotFound)
 
-	userServiceTest := NewUserService(mockUserDatabase)
+	userSvcTest := NewUserService(mockUserDB)
 
-	user, err := userServiceTest.FindByEmail("xyz@xyz.xyz")
+	user, err := userSvcTest.FindByEmail("xyz@xyz.xyz")
 
 	assert.NoError(t, err)
 	assert.Equal(t, user.ID, uint64(1))
 	assert.Equal(t, *user.Email, email)
 	assert.Equal(t, *user.FullName, fullName)
 
-	user, err = userServiceTest.FindByEmail("notexist@notexist.notexist")
+	user, err = userSvcTest.FindByEmail("notexist@notexist.notexist")
 
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	assert.Nil(t, user)
