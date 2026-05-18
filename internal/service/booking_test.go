@@ -353,6 +353,7 @@ func TestBookingService_CalculatePrice_OneDay(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, 100.0, result.Price)
 	assert.Zero(t, result.Discount)
+	assert.Equal(t, 100.0, result.Total)
 }
 
 func TestBookingService_CalculatePrice_MultiDay_Discount(t *testing.T) {
@@ -374,6 +375,7 @@ func TestBookingService_CalculatePrice_MultiDay_Discount(t *testing.T) {
 	assert.Equal(t, 300.0, result.Price)
 	assert.Equal(t, -90.0, result.Discount)
 	assert.NotZero(t, result.Discount)
+	assert.Equal(t, 210.0, result.Total)
 }
 
 func TestBookingService_Update_RecordNotFound(t *testing.T) {

@@ -220,7 +220,7 @@ func (b *bookingService) CalculatePrice(hallID uint64, from, to time.Time) (*res
 	days := billableDaysBetween(normalizedStart, normalizedEnd)
 	defaultPrice := hall.PricePerDay * days
 	discount := 0.0
-	newPrice := 0.0
+	newPrice := defaultPrice
 	if days >= 2 {
 		newPrice = defaultPrice * 0.7
 		discount = newPrice - defaultPrice
