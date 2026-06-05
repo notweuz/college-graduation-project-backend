@@ -1,6 +1,7 @@
 package service
 
 import (
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/mocks"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
@@ -45,7 +46,7 @@ func TestHallService_Create_Success(t *testing.T) {
 	result, err := svc.Create(1, &request.HallCreate{
 		Name:        hall.Name,
 		Description: hall.Description,
-		PricePerDay: hall.PricePerDay,
+		PricePerDay: &hall.PricePerDay,
 	})
 
 	assert.NoError(t, err)
@@ -60,7 +61,7 @@ func TestHallService_Create_NotAdmin(t *testing.T) {
 
 	svc := NewHallService(hallDB, bookingDB, userSvc)
 
-	result, err := svc.Create(2, &request.HallCreate{Name: "Hall B", PricePerDay: 100.0})
+	result, err := svc.Create(2, &request.HallCreate{Name: "Hall B", PricePerDay: ptr(100.0)})
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -76,10 +77,44 @@ func TestHallService_Create_Duplicate(t *testing.T) {
 
 	svc := NewHallService(hallDB, bookingDB, userSvc)
 
-	result, err := svc.Create(1, &request.HallCreate{Name: "Hall A", PricePerDay: 100.0})
+	result, err := svc.Create(1, &request.HallCreate{Name: "Hall A", PricePerDay: ptr(100.0)})
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
+}
+
+func TestHallService_Create_WithoutPrice(t *testing.T) {
+	hallDB, bookingDB, userSvc := setupHall(t)
+
+	admin := makeAdminUser(1)
+	userSvc.On("FindByID", uint64(1)).Return(admin, nil).Once()
+
+	svc := NewHallService(hallDB, bookingDB, userSvc)
+
+	result, err := svc.Create(1, &request.HallCreate{Name: "Hall A"})
+
+	assert.Nil(t, result)
+	var appErr *errs.AppError
+	assert.ErrorAs(t, err, &appErr)
+	assert.Equal(t, "price_per_day must be greater than 0", appErr.Reason)
+	hallDB.AssertNotCalled(t, "Create")
+}
+
+func TestHallService_Create_NegativePrice(t *testing.T) {
+	hallDB, bookingDB, userSvc := setupHall(t)
+
+	admin := makeAdminUser(1)
+	userSvc.On("FindByID", uint64(1)).Return(admin, nil).Once()
+
+	svc := NewHallService(hallDB, bookingDB, userSvc)
+
+	result, err := svc.Create(1, &request.HallCreate{Name: "Hall A", PricePerDay: ptr(-1.0)})
+
+	assert.Nil(t, result)
+	var appErr *errs.AppError
+	assert.ErrorAs(t, err, &appErr)
+	assert.Equal(t, "price_per_day must be greater than 0", appErr.Reason)
+	hallDB.AssertNotCalled(t, "Create")
 }
 
 func TestHallService_FindByID_Found(t *testing.T) {
@@ -169,6 +204,26 @@ func TestHallService_Update_NotAdmin(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
+	hallDB.AssertNotCalled(t, "Update")
+}
+
+func TestHallService_Update_NegativePrice(t *testing.T) {
+	hallDB, bookingDB, userSvc := setupHall(t)
+
+	admin := makeAdminUser(1)
+	hall := makeHall(1, "Hall A", true)
+
+	userSvc.On("FindByID", uint64(1)).Return(admin, nil).Once()
+	hallDB.On("FindByID", uint64(1)).Return(hall, nil).Once()
+
+	svc := NewHallService(hallDB, bookingDB, userSvc)
+
+	result, err := svc.Update(1, 1, &request.HallUpdate{PricePerDay: ptr(-1.0)})
+
+	assert.Nil(t, result)
+	var appErr *errs.AppError
+	assert.ErrorAs(t, err, &appErr)
+	assert.Equal(t, "price_per_day must be greater than 0", appErr.Reason)
 	hallDB.AssertNotCalled(t, "Update")
 }
 

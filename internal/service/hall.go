@@ -37,8 +37,11 @@ func (s *hallService) Create(userID uint64, hallCreate *request.HallCreate) (*mo
 		log.Warn().Uint64("id", userID).Msg("User is not admin")
 		return nil, errs.Forbidden("Forbidden", "user is not admin")
 	}
+	if hallCreate.PricePerDay == nil || *hallCreate.PricePerDay <= 0 {
+		return nil, errs.BadRequest("Cannot create hall", "price_per_day must be greater than 0")
+	}
 
-	hall := model.NewHall(0, hallCreate.Name, hallCreate.Description, hallCreate.PricePerDay, true)
+	hall := model.NewHall(0, hallCreate.Name, hallCreate.Description, *hallCreate.PricePerDay, true)
 
 	err = s.database.Create(hall)
 	if err != nil {
@@ -105,6 +108,9 @@ func (s *hallService) Update(userID, id uint64, hallUpdate *request.HallUpdate) 
 		hall.Description = *hallUpdate.Description
 	}
 	if hallUpdate.PricePerDay != nil {
+		if *hallUpdate.PricePerDay <= 0 {
+			return nil, errs.BadRequest("Cannot update hall", "price_per_day must be greater than 0")
+		}
 		hall.PricePerDay = *hallUpdate.PricePerDay
 	}
 	if hallUpdate.IsActive != nil {

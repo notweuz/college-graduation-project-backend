@@ -43,6 +43,8 @@ func humanizeValidationError(payload any, e validator.FieldError) string {
 		return fmt.Sprintf("%s must be at least %s characters long", field, e.Param())
 	case "max":
 		return fmt.Sprintf("%s must be at most %s characters long", field, e.Param())
+	case "gt":
+		return fmt.Sprintf("%s must be greater than %s", field, e.Param())
 	default:
 		return fmt.Sprintf("%s is invalid (%s)", field, e.Tag())
 	}
