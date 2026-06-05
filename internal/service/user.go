@@ -106,6 +106,16 @@ func (u *userService) UpdateProfile(userID uint64, updateProfile request.UpdateP
 		user.FullName = updateProfile.FullName
 	}
 	if updateProfile.Email != nil {
+		if user.Email == nil || *user.Email != *updateProfile.Email {
+			existingUser, err := u.database.FindByEmail(*updateProfile.Email)
+			if err == nil && existingUser.ID != userID {
+				return nil, errs.Conflict("Cannot update user", "user with this email already exists")
+			}
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				log.Error().Err(err).Msg("Cannot check user email")
+				return nil, errs.InternalServerError("Cannot update user", "internal server error")
+			}
+		}
 		user.Email = updateProfile.Email
 	}
 

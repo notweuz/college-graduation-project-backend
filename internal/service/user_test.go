@@ -1,6 +1,7 @@
 package service
 
 import (
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/mocks"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
@@ -76,6 +77,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 		Role:     enum.RoleAdmin,
 	}
 	mockUserDB.On("FindByID", uint64(1)).Return(mockUser, nil)
+	mockUserDB.On("FindByEmail", "user2@example.com").Return(nil, gorm.ErrRecordNotFound)
 	mockUserDB.On("Update", mock.AnythingOfType("*model.User")).Return(nil)
 
 	userSvcTest := NewUserService(mockUserDB)
@@ -93,6 +95,44 @@ func TestUserService_UpdateProfile(t *testing.T) {
 	assert.Equal(t, *mockUser.Email, newMail)
 	assert.Equal(t, *mockUser.FullName, newFullName)
 	assert.Equal(t, mockUser.Role, enum.RoleAdmin)
+}
+
+func TestUserService_UpdateProfile_EmailAlreadyExists(t *testing.T) {
+	mockUserDB := mocks.NewMockUserDatabase(t)
+
+	id := uint64(1)
+	email := "user@example.com"
+	fullName := "User Example"
+	mockUser := &model.User{
+		ID:       id,
+		Email:    &email,
+		FullName: &fullName,
+		Role:     enum.RoleAdmin,
+	}
+
+	existingEmail := "busy@example.com"
+	existingFullName := "Busy User"
+	existingUser := &model.User{
+		ID:       2,
+		Email:    &existingEmail,
+		FullName: &existingFullName,
+		Role:     enum.RoleClient,
+	}
+
+	mockUserDB.On("FindByID", id).Return(mockUser, nil)
+	mockUserDB.On("FindByEmail", existingEmail).Return(existingUser, nil)
+
+	userSvcTest := NewUserService(mockUserDB)
+
+	updateProfile := request.UpdateProfile{
+		Email: &existingEmail,
+	}
+	updatedUser, err := userSvcTest.UpdateProfile(id, updateProfile)
+
+	assert.Nil(t, updatedUser)
+	var appErr *errs.AppError
+	assert.ErrorAs(t, err, &appErr)
+	assert.Equal(t, "user with this email already exists", appErr.Reason)
 }
 
 func TestUserService_FindByEmail(t *testing.T) {
