@@ -91,6 +91,7 @@ func (h *UserHandler) GetPublicProfile(c fiber.Ctx) error {
 // @Success 200 {object} response.UserShort
 // @Failure 400 {object} BadRequestErrorResponse
 // @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 409 {object} ConflictErrorResponse
 // @Failure 500 {object} InternalServerErrorResponse
 // @Router /api/users/me [patch]
 func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
