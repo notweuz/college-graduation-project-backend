@@ -1,9 +1,11 @@
 package service
 
 import (
+	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/mocks"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
+	"college-graduation-project-backend/internal/model/response"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -229,15 +231,181 @@ func TestImageService_DeleteUserAvatar_NoAvatar(t *testing.T) {
 	imageDB.AssertNotCalled(t, "RemoveUserImage")
 }
 
-func TestImageService_UserNotFound(t *testing.T) {
+func TestImageService_DeleteHallImage_Success(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	admin := makeUserDB(1, enum.RoleAdmin)
+	hall := makeHall(1, "Hall A", true)
+	image := &model.Image{ID: 5, Path: "/images/hall1.jpg"}
+	hallImages := []model.Image{*image}
+
+	userDB.On("FindByID", uint64(1)).Return(admin, nil)
+	hallDB.On("FindByID", uint64(1)).Return(hall, nil)
+	imageDB.On("GetByID", uint64(5)).Return(image, nil)
+	imageDB.On("FindByHallID", uint64(1)).Return(hallImages, nil)
+	imageDB.On("Delete", uint64(5)).Return(nil)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	err := svc.DeleteHallImage(1, 1, 5)
+
+	assert.NoError(t, err)
+}
+
+func TestImageService_DeleteHallImage_NotAdmin(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	client := makeUserDB(2, enum.RoleClient)
+	userDB.On("FindByID", uint64(2)).Return(client, nil)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	err := svc.DeleteHallImage(2, 1, 5)
+
+	assert.Error(t, err)
+	imageDB.AssertNotCalled(t, "Delete")
+}
+
+func TestImageService_DeleteHallImage_HallNotFound(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	admin := makeUserDB(1, enum.RoleAdmin)
+	userDB.On("FindByID", uint64(1)).Return(admin, nil)
+	hallDB.On("FindByID", uint64(99)).Return(nil, gorm.ErrRecordNotFound)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	err := svc.DeleteHallImage(1, 99, 5)
+
+	assert.Error(t, err)
+	imageDB.AssertNotCalled(t, "Delete")
+}
+
+func TestImageService_DeleteHallImage_ImageNotFound(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	admin := makeUserDB(1, enum.RoleAdmin)
+	hall := makeHall(1, "Hall A", true)
+
+	userDB.On("FindByID", uint64(1)).Return(admin, nil)
+	hallDB.On("FindByID", uint64(1)).Return(hall, nil)
+	imageDB.On("GetByID", uint64(99)).Return(nil, gorm.ErrRecordNotFound)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	err := svc.DeleteHallImage(1, 1, 99)
+
+	assert.Error(t, err)
+	imageDB.AssertNotCalled(t, "Delete")
+}
+
+func TestImageService_DeleteHallImage_ImageNotAttachedToHall(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	admin := makeUserDB(1, enum.RoleAdmin)
+	hall := makeHall(1, "Hall A", true)
+	image := &model.Image{ID: 5, Path: "/images/hall1.jpg"}
+	hallImages := []model.Image{
+		{ID: 10, Path: "/images/other.jpg"},
+	}
+
+	userDB.On("FindByID", uint64(1)).Return(admin, nil)
+	hallDB.On("FindByID", uint64(1)).Return(hall, nil)
+	imageDB.On("GetByID", uint64(5)).Return(image, nil)
+	imageDB.On("FindByHallID", uint64(1)).Return(hallImages, nil)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	err := svc.DeleteHallImage(1, 1, 5)
+
+	assert.Error(t, err)
+	var appErr *errs.AppError
+	assert.ErrorAs(t, err, &appErr)
+	assert.Equal(t, "image is not attached to this hall", appErr.Reason)
+	imageDB.AssertNotCalled(t, "Delete")
+}
+
+func TestImageService_DeleteHallImage_UserNotFound(t *testing.T) {
 	imageDB, userDB, hallDB := setupImage(t)
 
 	userDB.On("FindByID", uint64(99)).Return(nil, gorm.ErrRecordNotFound)
 
 	svc := NewImageService(imageDB, userDB, hallDB)
 
-	err := svc.SetUserAvatar(99, "/avatars/user.jpg")
+	err := svc.DeleteHallImage(99, 1, 5)
 
 	assert.Error(t, err)
-	imageDB.AssertNotCalled(t, "Create")
+	imageDB.AssertNotCalled(t, "Delete")
+}
+
+func TestImageService_DeleteHallImage_DeleteFails(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	admin := makeUserDB(1, enum.RoleAdmin)
+	hall := makeHall(1, "Hall A", true)
+	image := &model.Image{ID: 5, Path: "/images/hall1.jpg"}
+	hallImages := []model.Image{*image}
+
+	userDB.On("FindByID", uint64(1)).Return(admin, nil)
+	hallDB.On("FindByID", uint64(1)).Return(hall, nil)
+	imageDB.On("GetByID", uint64(5)).Return(image, nil)
+	imageDB.On("FindByHallID", uint64(1)).Return(hallImages, nil)
+	imageDB.On("Delete", uint64(5)).Return(gorm.ErrInvalidData)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	err := svc.DeleteHallImage(1, 1, 5)
+
+	assert.Error(t, err)
+}
+
+func TestImageService_GetHallImagesWithIDs_Success(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	hall := makeHall(1, "Hall A", true)
+	images := []model.Image{
+		{ID: 1, Path: "/images/hall1.jpg"},
+		{ID: 2, Path: "/images/hall2.jpg"},
+	}
+
+	hallDB.On("FindByID", uint64(1)).Return(hall, nil)
+	imageDB.On("FindByHallID", uint64(1)).Return(images, nil)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	result, err := svc.GetHallImagesWithIDs(1)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, response.HallImageWithID{ID: 1, Path: "/images/hall1.jpg"}, result[0])
+	assert.Equal(t, response.HallImageWithID{ID: 2, Path: "/images/hall2.jpg"}, result[1])
+}
+
+func TestImageService_GetHallImagesWithIDs_Empty(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	hall := makeHall(1, "Hall A", true)
+
+	hallDB.On("FindByID", uint64(1)).Return(hall, nil)
+	imageDB.On("FindByHallID", uint64(1)).Return([]model.Image{}, nil)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	result, err := svc.GetHallImagesWithIDs(1)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 0)
+}
+
+func TestImageService_GetHallImagesWithIDs_HallNotFound(t *testing.T) {
+	imageDB, userDB, hallDB := setupImage(t)
+
+	hallDB.On("FindByID", uint64(99)).Return(nil, gorm.ErrRecordNotFound)
+
+	svc := NewImageService(imageDB, userDB, hallDB)
+
+	result, err := svc.GetHallImagesWithIDs(99)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
 }

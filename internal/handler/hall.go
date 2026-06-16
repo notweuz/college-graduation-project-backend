@@ -322,6 +322,61 @@ func (h *HallHandler) UploadImage(c fiber.Ctx) error {
 	})
 }
 
+// GetImages godoc
+// @Summary Get hall images with IDs (admin)
+// @Description Возвращает изображения зала с их ID (требуется авторизация администратора).
+// @Tags admin-halls
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID зала"
+// @Success 200 {array} response.HallImageWithID
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 403 {object} ForbiddenErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/admin/halls/{id}/images [get]
+func (h *HallHandler) GetImages(c fiber.Ctx) error {
+	id := fiber.Params[uint64](c, "id")
+
+	images, err := h.imageService.GetHallImagesWithIDs(id)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(images)
+}
+
+// DeleteImage godoc
+// @Summary Delete hall image (admin)
+// @Description Удаляет конкретное изображение зала по ID изображения (требуется авторизация администратора).
+// @Tags admin-halls
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID зала"
+// @Param image_id path int true "ID изображения"
+// @Success 204 {string} string "No Content"
+// @Failure 401 {object} UnauthorizedErrorResponse
+// @Failure 403 {object} ForbiddenErrorResponse
+// @Failure 404 {object} NotFoundErrorResponse
+// @Failure 500 {object} InternalServerErrorResponse
+// @Router /api/admin/halls/{id}/images/{image_id} [delete]
+func (h *HallHandler) DeleteImage(c fiber.Ctx) error {
+	hallID := fiber.Params[uint64](c, "id")
+	imageID := fiber.Params[uint64](c, "image_id")
+
+	userID, err := middleware.GetCurrentUserID(c)
+	if err != nil {
+		return err
+	}
+
+	err = h.imageService.DeleteHallImage(userID, hallID, imageID)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusNoContent).JSON(nil)
+}
+
 // ServeImage godoc
 // @Summary Get hall image
 // @Description Возвращает файл изображения по имени.

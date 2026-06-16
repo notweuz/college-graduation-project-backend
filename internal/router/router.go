@@ -106,7 +106,9 @@ func (r *Router) setupAdminHallRoutes(api fiber.Router) {
 	halls.Post("/", r.hallHandler.Create)
 	halls.Patch("/:id", r.hallHandler.Update)
 	halls.Delete("/:id", r.hallHandler.Delete)
+	halls.Get("/:id/images", r.hallHandler.GetImages)
 	halls.Post("/:id/images", r.hallHandler.UploadImage)
+	halls.Delete("/:id/images/:image_id", r.hallHandler.DeleteImage)
 }
 
 func (r *Router) setupAdminBookingRoutes(api fiber.Router) {

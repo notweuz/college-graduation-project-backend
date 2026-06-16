@@ -28,6 +28,11 @@ func NewHallFull(id uint64, name, description string, pricePerDay float64, isAct
 	}
 }
 
+type HallImageWithID struct {
+	ID   uint64 `json:"id"`
+	Path string `json:"path"`
+}
+
 type HallAvailability struct {
 	StartDateTime string `json:"start_date_time"`
 	EndDateTime   string `json:"end_date_time"`

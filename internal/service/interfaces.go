@@ -35,6 +35,8 @@ type HallService interface {
 type ImageService interface {
 	UploadHallImage(userID, hallID uint64, imagePath string) error
 	GetHallImages(hallID uint64) ([]string, error)
+	GetHallImagesWithIDs(hallID uint64) ([]response.HallImageWithID, error)
+	DeleteHallImage(userID, hallID, imageID uint64) error
 	SetUserAvatar(userID uint64, imagePath string) error
 	GetUserAvatar(userID uint64) (*string, error)
 	DeleteUserAvatar(userID uint64) error

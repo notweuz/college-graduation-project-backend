@@ -5,7 +5,9 @@ import (
 	"college-graduation-project-backend/internal/errs"
 	"college-graduation-project-backend/internal/model"
 	"college-graduation-project-backend/internal/model/enum"
+	"college-graduation-project-backend/internal/model/response"
 	"errors"
+	"os"
 
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -67,6 +69,73 @@ func (s *imageService) UploadHallImage(userID, hallID uint64, imagePath string) 
 	return nil
 }
 
+func (s *imageService) DeleteHallImage(userID, hallID, imageID uint64) error {
+	user, err := s.userDatabase.FindByID(userID)
+	if err != nil {
+		log.Error().Err(err).Uint64("id", userID).Msg("Cannot find user")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errs.NotFound("Cannot delete hall image", "user with that id doesnt exist in database")
+		}
+		return errs.InternalServerError("Cannot delete hall image", "internal server error")
+	}
+
+	if user.Role != enum.RoleAdmin {
+		log.Warn().Uint64("id", userID).Msg("User is not admin")
+		return errs.Forbidden("Forbidden", "user is not admin")
+	}
+
+	_, err = s.hallDatabase.FindByID(hallID)
+	if err != nil {
+		log.Error().Err(err).Uint64("hallID", hallID).Msg("Cannot find hall")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errs.NotFound("Cannot delete hall image", "hall with that id doesnt exist")
+		}
+		return errs.InternalServerError("Cannot delete hall image", "internal server error")
+	}
+
+	image, err := s.imageDatabase.GetByID(imageID)
+	if err != nil {
+		log.Error().Err(err).Uint64("imageID", imageID).Msg("Cannot find image")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errs.NotFound("Cannot delete hall image", "image with that id doesnt exist")
+		}
+		return errs.InternalServerError("Cannot delete hall image", "internal server error")
+	}
+
+	hallImages, err := s.imageDatabase.FindByHallID(hallID)
+	if err != nil {
+		log.Error().Err(err).Uint64("hallID", hallID).Msg("Cannot get hall images")
+		return errs.InternalServerError("Cannot delete hall image", "internal server error")
+	}
+
+	found := false
+	for _, img := range hallImages {
+		if img.ID == imageID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errs.NotFound("Cannot delete hall image", "image is not attached to this hall")
+	}
+
+	err = s.imageDatabase.Delete(imageID)
+	if err != nil {
+		log.Error().Err(err).Uint64("imageID", imageID).Msg("Cannot delete image")
+		return errs.InternalServerError("Cannot delete hall image", "internal server error")
+	}
+
+	if image.Path != "" {
+		filePath := "." + image.Path
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			log.Warn().Err(err).Str("path", filePath).Msg("Cannot delete image file")
+		}
+	}
+
+	log.Info().Uint64("hallID", hallID).Uint64("imageID", imageID).Msg("Hall image successfully deleted")
+	return nil
+}
+
 func (s *imageService) GetHallImages(hallID uint64) ([]string, error) {
 	_, err := s.hallDatabase.FindByID(hallID)
 	if err != nil {
@@ -90,6 +159,31 @@ func (s *imageService) GetHallImages(hallID uint64) ([]string, error) {
 
 	log.Info().Uint64("hallID", hallID).Int("count", len(imagePaths)).Msg("Hall images successfully retrieved")
 	return imagePaths, nil
+}
+
+func (s *imageService) GetHallImagesWithIDs(hallID uint64) ([]response.HallImageWithID, error) {
+	_, err := s.hallDatabase.FindByID(hallID)
+	if err != nil {
+		log.Error().Err(err).Uint64("hallID", hallID).Msg("Cannot find hall")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.NotFound("Cannot get hall images", "hall with that id doesnt exist")
+		}
+		return nil, errs.InternalServerError("Cannot get hall images", "internal server error")
+	}
+
+	images, err := s.imageDatabase.FindByHallID(hallID)
+	if err != nil {
+		log.Error().Err(err).Uint64("hallID", hallID).Msg("Cannot get hall images")
+		return nil, errs.InternalServerError("Cannot get hall images", "internal server error")
+	}
+
+	result := make([]response.HallImageWithID, 0, len(images))
+	for _, image := range images {
+		result = append(result, response.HallImageWithID{ID: image.ID, Path: image.Path})
+	}
+
+	log.Info().Uint64("hallID", hallID).Int("count", len(result)).Msg("Hall images with IDs successfully retrieved")
+	return result, nil
 }
 
 func (s *imageService) SetUserAvatar(userID uint64, imagePath string) error {

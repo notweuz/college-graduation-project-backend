@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"college-graduation-project-backend/internal/model/response"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -33,6 +35,69 @@ type MockImageService_Expecter struct {
 
 func (_m *MockImageService) EXPECT() *MockImageService_Expecter {
 	return &MockImageService_Expecter{mock: &_m.Mock}
+}
+
+// DeleteHallImage provides a mock function for the type MockImageService
+func (_mock *MockImageService) DeleteHallImage(userID uint64, hallID uint64, imageID uint64) error {
+	ret := _mock.Called(userID, hallID, imageID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteHallImage")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(uint64, uint64, uint64) error); ok {
+		r0 = returnFunc(userID, hallID, imageID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockImageService_DeleteHallImage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteHallImage'
+type MockImageService_DeleteHallImage_Call struct {
+	*mock.Call
+}
+
+// DeleteHallImage is a helper method to define mock.On call
+//   - userID uint64
+//   - hallID uint64
+//   - imageID uint64
+func (_e *MockImageService_Expecter) DeleteHallImage(userID interface{}, hallID interface{}, imageID interface{}) *MockImageService_DeleteHallImage_Call {
+	return &MockImageService_DeleteHallImage_Call{Call: _e.mock.On("DeleteHallImage", userID, hallID, imageID)}
+}
+
+func (_c *MockImageService_DeleteHallImage_Call) Run(run func(userID uint64, hallID uint64, imageID uint64)) *MockImageService_DeleteHallImage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 uint64
+		if args[0] != nil {
+			arg0 = args[0].(uint64)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 uint64
+		if args[2] != nil {
+			arg2 = args[2].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockImageService_DeleteHallImage_Call) Return(err error) *MockImageService_DeleteHallImage_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockImageService_DeleteHallImage_Call) RunAndReturn(run func(userID uint64, hallID uint64, imageID uint64) error) *MockImageService_DeleteHallImage_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // DeleteUserAvatar provides a mock function for the type MockImageService
@@ -144,6 +209,68 @@ func (_c *MockImageService_GetHallImages_Call) Return(strings []string, err erro
 }
 
 func (_c *MockImageService_GetHallImages_Call) RunAndReturn(run func(hallID uint64) ([]string, error)) *MockImageService_GetHallImages_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetHallImagesWithIDs provides a mock function for the type MockImageService
+func (_mock *MockImageService) GetHallImagesWithIDs(hallID uint64) ([]response.HallImageWithID, error) {
+	ret := _mock.Called(hallID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetHallImagesWithIDs")
+	}
+
+	var r0 []response.HallImageWithID
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(uint64) ([]response.HallImageWithID, error)); ok {
+		return returnFunc(hallID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(uint64) []response.HallImageWithID); ok {
+		r0 = returnFunc(hallID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]response.HallImageWithID)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(uint64) error); ok {
+		r1 = returnFunc(hallID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockImageService_GetHallImagesWithIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetHallImagesWithIDs'
+type MockImageService_GetHallImagesWithIDs_Call struct {
+	*mock.Call
+}
+
+// GetHallImagesWithIDs is a helper method to define mock.On call
+//   - hallID uint64
+func (_e *MockImageService_Expecter) GetHallImagesWithIDs(hallID interface{}) *MockImageService_GetHallImagesWithIDs_Call {
+	return &MockImageService_GetHallImagesWithIDs_Call{Call: _e.mock.On("GetHallImagesWithIDs", hallID)}
+}
+
+func (_c *MockImageService_GetHallImagesWithIDs_Call) Run(run func(hallID uint64)) *MockImageService_GetHallImagesWithIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 uint64
+		if args[0] != nil {
+			arg0 = args[0].(uint64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockImageService_GetHallImagesWithIDs_Call) Return(hallImageWithIDs []response.HallImageWithID, err error) *MockImageService_GetHallImagesWithIDs_Call {
+	_c.Call.Return(hallImageWithIDs, err)
+	return _c
+}
+
+func (_c *MockImageService_GetHallImagesWithIDs_Call) RunAndReturn(run func(hallID uint64) ([]response.HallImageWithID, error)) *MockImageService_GetHallImagesWithIDs_Call {
 	_c.Call.Return(run)
 	return _c
 }
